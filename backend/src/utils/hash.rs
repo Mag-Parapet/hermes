@@ -10,7 +10,7 @@ pub fn hash_password(password: impl Into<String>) -> Result<String, String> {
     
     Ok(argon2.hash_password(password.as_bytes(), &salt)
         .map_err(|e| e.to_string())?
-        .to_string())
+        .to_string())   
 }
 
 pub fn verify_password(password: &str, password_hash: &str) -> Result<bool, String> {

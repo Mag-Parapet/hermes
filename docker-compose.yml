@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: hermes_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: hermes
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrator:
+    image: migrate/migrate
+    container_name: hermes_migrator
+    volumes:
+      - ./migrations:/migrations
+    command:
+      - -path=/migrations
+      - -database
+      - postgres://postgres:root@postgres:5432/hermes?sslmode=disable
+      - up
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: hermes_frontend
+    restart: always
+    ports:
+      - "4200:80"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

@@ -1,0 +1,25 @@
+<div class="flex items-center -ml-1 mb-2 flex-wrap backdrop-blur-md" id="header">
+
+    <div class="flex items-center justify-between p-1 bg-white rounded-lg hover:bg-gray-100 
+              cursor-pointer select-none
+              dark:bg-gray-800 dark:hover:bg-gray-700 border dark:border-gray-700" (click)="onToggleSidenav()">
+        <span class="material-symbols-outlined text-gray-500 dark:text-gray-400"
+            [class.full]="!(collapsed$ | async)">dock_to_right</span>
+    </div>
+
+    <span class="text-gray-300 dark:text-gray-600 mx-1 select-none ml-2 mb-1">|</span>
+
+    <div class="flex items-center flex-wrap">
+        @for (pathSegment of path(); track $index) {
+        <a [href]="pathSegment.route" [routerLink]="pathSegment.route" class="cursor-pointer text-sm text-gray-600 hover:opacity-90 hover:underline
+                dark:text-gray-300 dark:hover:text-white" [class.opacity-50]="!$last" [class.dark:opacity-50]="!$last">
+            <span class="mx-1">{{ pathSegment.title }}</span>
+        </a>
+        @if (!$last) {
+        <span class="material-symbols-outlined text-gray-300 dark:text-gray-600 scale-75 select-none">
+            chevron_right
+        </span>
+        }
+        }
+    </div>
+</div>

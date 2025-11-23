@@ -4,7 +4,9 @@ use serde_json::json;
 
 use crate::{
     config::AppState,
-    models::{dtos::{RegisterUserSchema, LoginUserSchema, RefreshRequest, UserResponse, TokenResponse}, user::User},
+    models::user::User,
+    dtos::users::UserResponse,
+    dtos::auth::{RegisterUserSchema, LoginUserSchema, RefreshRequest, TokenResponse},
     utils::{hash::hash_password, hash::verify_password, jwt::generate_tokens, jwt::verify_token},
 };
 

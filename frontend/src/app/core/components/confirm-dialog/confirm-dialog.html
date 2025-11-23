@@ -1,0 +1,22 @@
+<div class="flex flex-col gap-3 p-4 lg:p-8 
+            bg-white shadow-md rounded-lg
+            dark:bg-gray-800 dark:border dark:border-gray-700">
+
+    <h1 class="text-xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+        {{ data.title || 'Confirm Action' }}
+    </h1>
+
+    <p class="text-gray-700 dark:text-gray-300">
+        {{ data.content || 'Are you sure you want to proceed with this action? This cannot be undone.' }}
+    </p>
+
+    <div class="mt-6 flex flex-col sm:flex-row sm:justify-end gap-3 sm:gap-4">
+        <button class="button-outline" (click)="handleCancel()">
+            {{ data.cancel || 'Cancel' }}
+        </button>
+
+        <button class="button" (click)="handleConfirm()">
+            {{ data.confirm || 'Confirm' }}
+        </button>
+    </div>
+</div>

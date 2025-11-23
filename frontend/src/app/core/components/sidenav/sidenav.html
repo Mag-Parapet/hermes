@@ -1,0 +1,76 @@
+<nav class="flex flex-col w-64 h-screen sticky top-0 transition-all duration-200" id="sidenav"
+     [class.collapsed]="(collapsed$ | async) || isMobile" [class.hidden]="isMobile() && (collapsed$ | async)">
+  
+  <div class="logo-wrapper p-4 select-none">
+    <a href="/dashboard" routerLink="/dashboard" 
+       class="logo mt-px flex items-center gap-2 group p-2 rounded-lg 
+              hover:bg-gray-200 dark:hover:bg-gray-700">
+      
+      <div class="flex items-center justify-center p-1 rounded-lg 
+                  group-active:scale-90 transition">
+        <img class="h-7" src="/logo.png" />
+      </div>
+      
+      <span class="logo-text text-xl mb-[3px] font-extrabold text-gray-600 group-hover:text-gray-800
+                   dark:text-gray-300 dark:group-hover:text-white">Hermes</span>
+    </a>
+  </div>
+  
+  <p class="platform px-6 pt-6 text-xs font-medium text-gray-500 dark:text-gray-400">Menu</p>
+
+  <div class="nav flex-1 p-4 pt-1 flex flex-col justify-between">
+    <ul class="flex flex-col flex-1 gap-1">
+      @for (menuItem of menu; track menuItem.title) {
+      <li>
+        <a [href]="menuItem.route" [routerLink]="menuItem.route"
+           routerLinkActive="!text-gray-800 dark:!text-white dark:bg-gray-800 active pr-0"
+           [routerLinkActiveOptions]="{ exact: $first && true }"
+           class="nav-item flex justify-between text-sm p-[.4rem] text-gray-500 transition-all 
+                  rounded-lg hover:bg-gray-200 
+                  dark:text-gray-300 dark:hover:bg-gray-700">
+          
+          <div class="flex items-center">
+            <span class="nav-item-icon material-symbols-outlined mr-1 scale-90 text-gray-600! select-none
+                         dark:text-gray-400!">
+              {{ menuItem.icon }}
+            </span>
+            <span class="nav-item-text">{{ menuItem.title }}</span>
+          </div>
+
+          <span class="nav-item-state material-symbols-outlined mr-1 scale-90 select-none chevron">
+            chevron_right
+          </span>
+        </a>
+      </li>
+      }
+    </ul>
+    
+    <section class="settings flex flex-col gap-1">
+      <div class="nav-item flex items-center cursor-pointer text-sm p-[.4rem] text-gray-500 
+                  transition-all rounded-lg hover:bg-gray-200 
+                  dark:text-gray-300 dark:hover:bg-gray-700"
+           (click)="onToggleTheme()">
+        
+        <span class="nav-item-icon material-symbols-outlined mr-1 scale-90 text-gray-600! select-none
+                     dark:text-gray-400!">
+          {{ isDarkMode() ? 'dark_mode' : 'light_mode' }}
+        </span>
+        <span class="nav-item-text">Theme</span>
+      </div>
+      
+      <div>
+        <div class="nav-item flex items-center cursor-pointer text-sm p-[.4rem] text-gray-500 
+                    transition-all rounded-lg hover:bg-gray-200 
+                    dark:text-gray-300 dark:hover:bg-gray-700"
+             (click)="onLogout()">
+          
+          <span class="nav-item-icon material-symbols-outlined mr-1 scale-90 text-gray-600! select-none
+                       dark:text-gray-400!">
+            logout
+          </span>
+          <span class="nav-item-text">Logout</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</nav>

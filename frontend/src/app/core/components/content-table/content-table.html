@@ -1,0 +1,89 @@
+<div class="border border-gray-200 dark:border-gray-700 rounded-md grow w-full overflow-x-auto">
+  <table class="w-full caption-bottom text-sm" [class.h-full]="data()!?.rows?.length < 1">
+    
+    <thead class="bg-card dark:bg-gray-700/50">
+      <tr class="border-b dark:border-gray-700 transition-colors hover:bg-muted/50 dark:hover:bg-gray-700 data-[state=selected]:bg-muted">
+        @for (column of columns(); track column) {
+          <th
+            class="h-10 px-2 text-left align-middle font-medium text-muted-foreground dark:text-gray-400">
+            {{ column }}</th>
+        }
+      </tr>
+    </thead>
+    
+    <tbody class="">
+      @for (row of data()!?.rows; track row) {
+        <tr class="border-b border-gray-100 dark:border-gray-800 h-10 hover:bg-gray-50 dark:hover:bg-gray-700/60 cursor-pointer" 
+            [routerLink]="row[row.length - 1]">
+          @for (column of row; track $index) {
+            @if (!$last) {
+              <td class="p-2">{{ column }}</td>
+            }
+          }
+        </tr>
+      } @empty {
+        <tr class="transition-colors w-full">
+          <td class="p-2 align-middle h-24 text-center" [attr.colspan]="columns().length">No results.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="flex items-center justify-center md:justify-end w-full
+            space-x-6 lg:space-x-8 
+            flex-col md:flex-row space-y-4 md:space-y-0 mt-4">
+  
+  <div class="flex items-center space-x-2">
+    <p class="text-sm font-medium dark:text-gray-300">Results per page</p>
+    <select
+      #pageSizeSelector
+      (change)="onChangePageSize(pageSizeSelector.value)"
+      class="flex items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent text-center text-sm shadow-sm
+             focus:outline-none focus:ring-1 focus:ring-ring
+             disabled:cursor-not-allowed disabled:opacity-50 h-8 w-[70px]
+             dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300
+             dark:focus:ring-gray-500 dark:focus:border-gray-500">
+      <option value="10" class="dark:bg-gray-800">10</option>
+      <option value="20" class="dark:bg-gray-800">20</option>
+      <option value="40" class="dark:bg-gray-800">40</option>
+      <option value="60" class="dark:bg-gray-800">60</option>
+      <option value="80" class="dark:bg-gray-800">80</option>
+      <option value="100" class="dark:bg-gray-800">100</option>
+    </select>
+  </div>
+  
+  <div class="flex items-center space-x-2">
+    <button
+      (click)="onPreviousPage()"
+      [disabled]="page() === 1"
+      class="flex items-center justify-between whitespace-nowrap rounded-md border bg-transparent text-center text-sm shadow-sm 
+             hover:border-gray-300 active:border-gray-500 
+             disabled:cursor-not-allowed disabled:opacity-50
+             dark:bg-gray-800 dark:border-gray-600 dark:hover:border-gray-400">
+      <span class="material-symbols-outlined scale-90 text-gray-500 dark:text-gray-400">chevron_left</span>
+    </button>
+    <button
+      (click)="onNextPage()"
+      [disabled]="page() === (data()?.pagination?.totalPages || 1)"
+      class="flex items-center justify-between whitespace-nowrap rounded-md border bg-transparent text-center text-sm shadow-sm 
+             hover:border-gray-300 active:border-gray-500 
+             disabled:cursor-not-allowed disabled:opacity-50
+             dark:bg-gray-800 dark:border-gray-600 dark:hover:border-gray-400">
+      <span class="material-symbols-outlined scale-90 text-gray-500 dark:text-gray-400">chevron_right</span>
+    </button>
+    <select
+      #pageSelector
+      (change)="onChangePage(pageSelector.value)"
+      [(ngModel)]="page"
+      class="flex items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent text-center text-sm shadow-sm 
+             focus:outline-none hover:border-gray-300 focus:border-gray-500 
+             disabled:cursor-not-allowed disabled:opacity-50 h-8 w-[70px]
+             dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300
+             dark:focus:border-gray-500">
+      @for (page of pagesRange(); track page) {
+        <option value="{{ page }}" class="dark:bg-gray-800">{{ page }}</option>
+      }
+    </select>
+  </div>
+</div>

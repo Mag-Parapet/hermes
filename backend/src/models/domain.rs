@@ -13,6 +13,8 @@ pub struct Domain {
     pub max_body_size: Option<i32>,
     pub is_ssl: Option<bool>,
     pub is_active: Option<bool>,
+    pub ssl_certificate_path: Option<String>,
+    pub ssl_certificate_key_path: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }

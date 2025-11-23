@@ -1,7 +1,7 @@
 use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation};
 use chrono::{Utc, Duration};
 use uuid::Uuid;
-use crate::models::{user::UserRole, dtos::TokenClaims};
+use crate::{models::user::UserRole, dtos::users::TokenClaims};
 
 pub fn generate_tokens(user_id: Uuid, role: UserRole, secret: &str) -> Result<(String, String), String> {
     let now = Utc::now();

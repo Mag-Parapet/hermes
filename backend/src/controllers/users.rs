@@ -1,6 +1,6 @@
 use axum::{response::IntoResponse, Json};
 use serde_json::json;
-use crate::{middlewares::auth::JWTAuth, models::dtos::UserResponse};
+use crate::{middlewares::auth::JWTAuth, dtos::users::UserResponse};
 
 pub async fn get_me(JWTAuth(user): JWTAuth) -> impl IntoResponse {
     let response_user = UserResponse {
