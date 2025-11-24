@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS files (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    file_storage_id UUID NOT NULL REFERENCES file_storages(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    path VARCHAR(512) NOT NULL,
+    size BIGINT NOT NULL,
+    file_type VARCHAR(50) NOT NULL,
+    is_folder BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);

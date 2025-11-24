@@ -42,8 +42,6 @@ pub struct DomainResponse {
     pub ssl_certificate_key_path: Option<String>,
 }
 
-// --- PAGINATION & FILTERING ---
-
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct DomainFilterOptions {

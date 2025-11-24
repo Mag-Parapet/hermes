@@ -1,0 +1,75 @@
+nav {
+  transition:
+    display 0.1s ease,
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  transition-behavior: allow-discrete;
+}
+
+nav.hidden {
+  opacity: 0;
+  transform: translateX(-20px);
+  display: none;
+}
+
+.active .material-symbols-outlined {
+  font-variation-settings: 'FILL' 1;
+  transition: 0.2s;
+}
+
+.active .chevron {
+  rotate: 90deg;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0;
+  transition: 0.2s;
+}
+
+.collapsed {
+  width: fit-content;
+}
+
+.collapsed .logo-wrapper {
+  padding: 0.5rem;
+  padding-top: 1rem;
+}
+
+.collapsed .nav {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem;
+}
+
+.collapsed .nav ul {
+  gap: 0.3rem;
+}
+
+.collapsed .logo {
+  padding: 0;
+}
+
+.collapsed .nav-item {
+  aspect-ratio: 1;
+  justify-content: center !important;
+  padding: 0.1rem !important;
+}
+
+.collapsed .nav-item-icon {
+  margin: 0 !important;
+  scale: 110% !important;
+}
+
+.collapsed .logo-text,
+.collapsed .platform,
+.collapsed .nav-item-text,
+.collapsed .nav-item-state {
+  display: none !important;
+}
+
+.collapsed .settings {
+  margin-bottom: 0.5rem;
+  gap: 0.3rem;
+}

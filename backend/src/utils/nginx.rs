@@ -1,15 +1,9 @@
 use std::fs;
 use std::path::Path;
-use std::process::Command;
-
-const SITES_AVAILABLE: &str = "/etc/nginx/sites-available";
-const SITES_ENABLED: &str = "/etc/nginx/sites-enabled";
 
 pub struct NginxManager;
 
 impl NginxManager {
-    
-    /// Generate Nginx config with optional SSL support
     fn generate_template(
         domain: &str, 
         port: i32, 

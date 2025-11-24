@@ -10,7 +10,9 @@ import { Layout } from './layout';
   imports: [
     RouterModule.forChild([
       { path: '', component: Layout, children: [
+        { path: '', loadComponent: () => import('@pages/home/home').then(m => m.Home) },
         { path: 'domains', loadChildren: () => import('@pages/domains/domains-module').then(m => m.DomainsModule) },
+        { path: 'file-storages', loadChildren: () => import('@pages/file-storages/file-storages-module').then(m => m.FileStoragesModule) },
         { path: '**', redirectTo: 'domains' }
       ] }
     ])

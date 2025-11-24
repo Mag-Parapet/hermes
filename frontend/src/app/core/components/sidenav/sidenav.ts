@@ -30,7 +30,9 @@ export class Sidenav {
   }
 
   menu = [
+    { title: 'Home', icon: 'dashboard', route: '/' },
     { title: 'Domains', icon: 'host', route: '/domains' },
+    { title: 'File Storages', icon: 'box', route: '/file-storages' },
   ]
 
   onToggleTheme() {

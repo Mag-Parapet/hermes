@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use sqlx::PgPool;
 use std::env;
 use dotenvy::dotenv;
@@ -13,6 +14,8 @@ pub struct AppState {
 pub struct Config {
     pub jwt_secret: String,
     pub port: u16,
+    pub storage_root: String,
+    pub static_host: String, // New Field
 }
 
 impl Config {
@@ -20,7 +23,9 @@ impl Config {
         dotenv().ok();
         
         let jwt_secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
-        
+        let storage_root = env::var("STORAGE_ROOT").unwrap_or_else(|_| "../storage".to_string());
+        let static_host = env::var("STATIC_HOST").unwrap_or_else(|_| "/static".to_string());
+
         let port = env::var("PORT")
             .unwrap_or_else(|_| "8080".to_string())
             .parse::<u16>()
@@ -28,7 +33,9 @@ impl Config {
 
         Config { 
             jwt_secret,
-            port 
+            port,
+            storage_root,
+            static_host
         }
     }
 }

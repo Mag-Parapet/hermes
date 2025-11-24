@@ -1,5 +1,5 @@
 <nav class="flex flex-col w-64 h-screen sticky top-0 transition-all duration-200" id="sidenav"
-     [class.collapsed]="(collapsed$ | async) || isMobile" [class.hidden]="isMobile() && (collapsed$ | async)">
+     [class.collapsed]="(collapsed$ | async) || isMobile()" [class.hidden]="isMobile() && (collapsed$ | async)">
   
   <div class="logo-wrapper p-4 select-none">
     <a href="/dashboard" routerLink="/dashboard" 
