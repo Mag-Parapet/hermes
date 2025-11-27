@@ -26,11 +26,15 @@ use crate::{
 
 fn map_file_to_response(file: FileItem, base_url: &str) -> crate::dtos::file::FileResponse {
     let base_path = format!("{}/{}", base_url, file.file_storage_id);
-    let mut url = format!("{}/{}", base_path, file.name);
     let mut variants = None;
+    let mut ext = file.name
+        .rsplit('.')
+        .next()
+        .unwrap_or("bin");
+    let mut url = format!("{}/{}.{}", base_path, file.id, ext);
 
     if file.file_type.starts_with("image/") {
-        let ext = file.file_type.strip_prefix("image/").unwrap_or("jpeg");
+        ext = file.file_type.strip_prefix("image/").unwrap_or("jpeg");
         url = format!("{}/{}.{}", base_path, file.id, ext);
         
         variants = Some(crate::dtos::file::ImageVariants {

@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { UnitConvertPipe } from '@core/pipes/unit-convert-pipe';
 import { FileStoragesService } from '@core/services/file-storages';
 import { Store } from '@ngrx/store';
 import { setLoading } from 'app/state/loading/loading.actions';
@@ -8,7 +9,7 @@ import Snackbar from 'awesome-snackbar';
 
 @Component({
   selector: 'app-add',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, UnitConvertPipe],
   templateUrl: './add.html',
   styleUrl: './add.css',
 })
@@ -20,11 +21,11 @@ export class Add {
 
   form = this.fb.group({
     name: ['', [Validators.required]],
-    fileMaxSize: [10_240, [Validators.required, Validators.min(1)]],
+    fileMaxSize: [20_971_520, [Validators.required, Validators.min(1)]],
     compressionEnabled: [true],
     imgResizeMaxSize: [1024],
     imgDefaultFormat: ['webp'],
-    quotaSize: [1_048_576, [Validators.required, Validators.min(1)]],
+    quotaSize: [104857600, [Validators.required, Validators.min(1)]],
     allowedFileTypes: ['*'],
     isActive: [true],
   });

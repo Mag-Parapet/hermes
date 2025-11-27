@@ -1,14 +1,16 @@
-<nav class="flex flex-col w-64 h-screen sticky top-0 transition-all duration-200" id="sidenav"
+<nav class="flex flex-col w-64 h-dvh sticky top-0 transition-all duration-200" id="sidenav"
      [class.collapsed]="(collapsed$ | async) || isMobile()" [class.hidden]="isMobile() && (collapsed$ | async)">
   
   <div class="logo-wrapper p-4 select-none">
+    
     <a href="/dashboard" routerLink="/dashboard" 
        class="logo mt-px flex items-center gap-2 group p-2 rounded-lg 
               hover:bg-gray-200 dark:hover:bg-gray-700">
       
-      <div class="flex items-center justify-center p-1 rounded-lg 
-                  group-active:scale-90 transition">
-        <img class="h-7" src="/logo.png" />
+      <div class="flex items-center justify-center bg-black text-white p-1 rounded-lg shadow-md 
+                  group-active:scale-90 transition p-1
+                  dark:bg-gray-200 dark:text-gray-900">
+        <img class="h-7" src="/logo{{ isDarkMode() ? '' : '_dark' }}.png" />
       </div>
       
       <span class="logo-text text-xl mb-[3px] font-extrabold text-gray-600 group-hover:text-gray-800

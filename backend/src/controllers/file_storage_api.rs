@@ -7,7 +7,6 @@ use axum::{
 };
 use serde_json::json;
 use uuid::Uuid;
-use sqlx::{QueryBuilder, Postgres};
 
 use crate::{
     config::AppState,

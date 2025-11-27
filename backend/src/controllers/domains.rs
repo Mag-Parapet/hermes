@@ -36,11 +36,14 @@ pub async fn create_domain(
         return Err((StatusCode::CONFLICT, Json(json!({"message": "Domain already managed"}))));
     }
 
+    // 2. Specific field validation
+    // CHANGED: Use raw bytes from body or env. No division.
     let client_max_body_size = body.client_max_body_size.unwrap_or(data.env.multer_max_file_size as i64).max(0);
     
     let cert_path = body.ssl_certificate_path.unwrap_or_else(|| data.env.default_ssl_cert_path.clone());
     let key_path = body.ssl_certificate_key_path.unwrap_or_else(|| data.env.default_ssl_key_path.clone());
     let is_ssl = body.is_ssl.unwrap_or(data.env.default_ssl_enabled);
+    let is_active = body.is_active.unwrap_or(true);
 
     let nginx_target_host = body.nginx_target_host.as_deref();
     let nginx_root_path = body.nginx_root_path.as_deref();
@@ -72,6 +75,7 @@ pub async fn create_domain(
                 if nginx_config_content.is_none() {
                     return Err((StatusCode::BAD_REQUEST, Json(json!({"message": "Custom type requires 'nginxConfigContent'"}))));
                 }
+                // Basic check for empty config
                 if nginx_config_content.unwrap().trim().is_empty() {
                      return Err((StatusCode::BAD_REQUEST, Json(json!({"message": "Custom configuration cannot be empty"}))));
                 }
@@ -79,7 +83,8 @@ pub async fn create_domain(
             _ => {}
         }
 
-        if is_ssl {
+        // SSL Validation Check
+        if is_ssl && body.domain_type != "custom" {
             if let Err(e) = DomainValidator::validate_ssl_files(&cert_path, &key_path) {
                 return Err((StatusCode::BAD_REQUEST, Json(json!({"message": e}))));
             }
@@ -89,8 +94,8 @@ pub async fn create_domain(
           return Err((StatusCode::BAD_REQUEST, Json(json!({"message": "Invalid or unsupported domain type specified"}))));
     }
     
-    // 3. Attempt Nginx Deployment
-    if is_nginx_type {
+    // 3. Attempt Nginx Deployment (Only if active)
+    if is_nginx_type && is_active {
         match NginxManager::deploy_site(
             &body.domain_type,
             &body.domain, 
@@ -127,7 +132,7 @@ pub async fn create_domain(
     .bind(&body.domain)
     .bind(client_max_body_size)
     .bind(is_ssl)
-    .bind(true)
+    .bind(is_active)
     .bind(&body.domain_type)
     .bind(body.nginx_target_host)
     .bind(body.nginx_root_path)
@@ -185,8 +190,9 @@ pub async fn update_domain(
 
     // CHANGED: Use bytes. Fallback to existing value which is already bytes.
     let new_max_body_size = body.client_max_body_size.or(existing.client_max_body_size).unwrap_or(10485760); // Default 10MB in bytes
-    
+        
     let new_is_ssl = body.is_ssl.or(existing.is_ssl).unwrap_or(false);
+    let new_is_active = body.is_active.or(existing.is_active).unwrap_or(true);
     let new_cert_path = body.ssl_certificate_path.as_deref().or(existing.ssl_certificate_path.as_deref()).unwrap_or("default");
     let new_key_path = body.ssl_certificate_key_path.as_deref().or(existing.ssl_certificate_key_path.as_deref()).unwrap_or("default");
 
@@ -220,35 +226,42 @@ pub async fn update_domain(
             _ => {}
         }
         
-        // if new_is_ssl {
-        //     if let Err(e) = DomainValidator::validate_ssl_files(new_cert_path, new_key_path) {
-        //         return Err((StatusCode::BAD_REQUEST, Json(json!({"message": e}))));
-        //     }
-        // }
+        // SSL Validation Check (If SSL state changed or paths changed, verify existence)
+        if new_is_ssl && new_domain_type != "custom" {
+            if let Err(e) = DomainValidator::validate_ssl_files(new_cert_path, new_key_path) {
+                return Err((StatusCode::BAD_REQUEST, Json(json!({"message": e}))));
+            }
+        }
     }
 
+    // 4. Handle Nginx Updates
     let name_changed = new_domain_name != existing.domain;
     if name_changed {
         let _ = NginxManager::delete_site(&existing.domain);
     }
 
     if is_nginx_type {
-        match NginxManager::deploy_site(
-            new_domain_type,
-            new_domain_name,
-            new_target_host,
-            new_root_path,
-            new_max_body_size,
-            new_is_ssl,
-            new_cert_path,
-            new_key_path,
-            new_config_content
-        ) {
-            Ok(_) => {},
-            Err(e) => {
-                tracing::error!("Nginx update deployment failed: {}", e);
-                return Err((StatusCode::BAD_REQUEST, Json(json!({"status": "fail", "message": e}))));
+        if new_is_active {
+            match NginxManager::deploy_site(
+                new_domain_type,
+                new_domain_name,
+                new_target_host,
+                new_root_path,
+                new_max_body_size,
+                new_is_ssl,
+                new_cert_path,
+                new_key_path,
+                new_config_content
+            ) {
+                Ok(_) => {},
+                Err(e) => {
+                    tracing::error!("Nginx update deployment failed: {}", e);
+                    return Err((StatusCode::BAD_REQUEST, Json(json!({"status": "fail", "message": e}))));
+                }
             }
+        } else {
+            // Domain is inactive, ensure it's removed from Nginx
+            let _ = NginxManager::delete_site(new_domain_name);
         }
     }
 
@@ -266,7 +279,7 @@ pub async fn update_domain(
     .bind(new_domain_name)
     .bind(new_max_body_size)
     .bind(new_is_ssl)
-    .bind(true)
+    .bind(new_is_active)
     .bind(new_domain_type)
     .bind(new_target_host)
     .bind(new_root_path)

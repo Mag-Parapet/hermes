@@ -5,7 +5,6 @@ use std::io::{Cursor, BufWriter, Write};
 use uuid::Uuid;
 use blurhash::encode; 
 use webp; 
-// Removed std::thread
 
 pub struct FileOps;
 
@@ -25,7 +24,6 @@ impl FileOps {
         types.contains(&ext.as_str())
     }
 
-    /// Helper to save an image variant with compression quality applied.
     fn save_variant(
         img: &image::DynamicImage,
         path: &str,
@@ -98,20 +96,17 @@ impl FileOps {
                     || original_filename.to_lowercase().ends_with(".webp");
         
         if is_image {
-            // 1. DECODE IMAGE
             let img = ImageReader::new(Cursor::new(&data))
                 .with_guessed_format()
                 .map_err(|e| format!("Failed to read image format: {}", e))?
                 .decode()
                 .map_err(|e| format!("Failed to decode image: {}", e))?;
 
-            // 2. CALCULATE BLURHASH
             let small_img = img.thumbnail(50, 50);
             let (width, height) = small_img.dimensions();
             let blurhash_string = encode(4, 3, width, height, &small_img.to_rgba8().into_raw())
                 .map_err(|e| format!("Failed to calculate blurhash: {}", e))?;
 
-            // 3. DETERMINE FORMATS
             let target_format = if compression_enabled {
                 match format_ext.to_lowercase().as_str() {
                     "png" => ImageFormat::Png,
@@ -142,20 +137,14 @@ impl FileOps {
             let output_filename = format!("{}.{}", file_stem, new_ext);
             let output_path = format!("{}/{}", folder_path, output_filename);
 
-            // 4. SAVE MAIN IMAGE
-            // We use an Option to hold the resized image if we created one, 
-            // so we can use it as the starting point for variants (optimization).
             let mut resized_main_img: Option<image::DynamicImage> = None;
 
             if !compression_enabled {
-                // OPTIMIZATION: Write RAW bytes directly.
                 fs::write(&output_path, &data).map_err(|e| e.to_string())?;
             } else {
-                // Resize (if needed) and Re-encode
                 let mut main_img_ref = &img;
                 
                 if img.width() > resize_max as u32 || img.height() > resize_max as u32 {
-                    // Use Thumbnail (Fastest downscaling)
                     let resized = img.thumbnail(resize_max as u32, resize_max as u32);
                     resized_main_img = Some(resized);
                     main_img_ref = resized_main_img.as_ref().unwrap();
@@ -165,32 +154,31 @@ impl FileOps {
                     .map_err(|e| format!("Failed to save main image: {}", e))?;
             }
 
-            // Capture metadata
             let metadata = fs::metadata(&output_path).map_err(|e| format!("Failed to read metadata for {}: {}", output_path, e))?;
             let file_size = metadata.len() as i64;
             let mime_type = format!("image/{}", new_ext);
 
-            // 5. GENERATE VARIANTS (SEQUENTIAL / SAME THREAD)
-            // Start the cascade from the already resized image (if it exists) to save processing, 
-            // otherwise start from the full original `img`.
             let start_source = resized_main_img.as_ref().unwrap_or(&img);
             
-            // We clone the start_source to begin the modification chain. 
-            // This is a RAM copy, which is fast.
             let mut current_source = start_source.clone(); 
 
             let variants = vec![("lg", 1200), ("md", 800), ("sm", 480)];
 
             for (suffix, target_w) in variants {
+                let variant_path = format!("{}/{}_{}.{}", folder_path, file_stem, suffix, new_ext);
+                
+                // Decide: Resize if larger, otherwise copy current (MANDATORY VARIANT)
                 if current_source.width() > target_w {
                     let resized = current_source.thumbnail(target_w, target_w);
-                    let variant_path = format!("{}/{}_{}.{}", folder_path, file_stem, suffix, new_ext);
                     
                     // Generate variant
                     let _ = Self::save_variant(&resized, &variant_path, target_format, compression_enabled);
                     
                     // Cascade: Use this smaller image as the source for the next smaller variant
                     current_source = resized;
+                } else {
+                    // Image is already small enough, but we MUST save the variant to prevent 404s
+                    let _ = Self::save_variant(&current_source, &variant_path, target_format, compression_enabled);
                 }
             }
 

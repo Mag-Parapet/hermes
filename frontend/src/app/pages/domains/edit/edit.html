@@ -33,13 +33,16 @@
             <div class="flex flex-col w-full">
                 <select id="domainType" formControlName="domainType"
                     class="input bg-white dark:bg-gray-800">
-                    <option *ngFor="let type of domainTypes" [value]="type.value">{{ type.label }}</option>
+                    @for (type of domainTypes; track type.value) {
+                    <option [value]="type.value">{{ type.label }}</option>
+                    }
                 </select>
             </div>
         </section>
 
         <!-- DYNAMIC FIELD: Reverse Proxy Target -->
-        <section class="flex flex-col sm:flex-row" *ngIf="form.get('domainType')?.value === 'reverse_proxy'">
+        @if (form.get('domainType')?.value === 'reverse_proxy') {
+        <section class="flex flex-col sm:flex-row">
             <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
                 <label for="nginxTargetHost" class="block font-medium text-gray-700 dark:text-gray-300">Target Host*</label>
                 <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Where to proxy traffic (e.g. 127.0.0.1:3000)</p>
@@ -52,9 +55,11 @@
                 </div>
             </div>
         </section>
+        }
 
         <!-- DYNAMIC FIELD: Root Path (Web Server / Static) -->
-        <section class="flex flex-col sm:flex-row" *ngIf="['web_server', 'static_host'].includes(form.get('domainType')?.value || '')">
+        @if (['web_server', 'static_host'].includes(form.get('domainType')?.value || '')) {
+        <section class="flex flex-col sm:flex-row">
             <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
                 <label for="nginxRootPath" class="block font-medium text-gray-700 dark:text-gray-300">Root Path*</label>
                 <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Folder path to serve files from (e.g. /var/www/html/mysite)</p>
@@ -67,9 +72,11 @@
                 </div>
             </div>
         </section>
+        }
 
         <!-- DYNAMIC FIELD: Custom Config (Full Raw Nginx File) -->
-        <section class="flex flex-col sm:flex-row" *ngIf="form.get('domainType')?.value === 'custom'">
+        @if (form.get('domainType')?.value === 'custom') {
+        <section class="flex flex-col sm:flex-row">
             <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
                 <label for="nginxConfigContent" class="block font-medium text-gray-700 dark:text-gray-300">Raw Config Content*</label>
                 <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Full Nginx config file content (bypasses automation)</p>
@@ -83,22 +90,57 @@
                 </div>
             </div>
         </section>
+        }
 
-        <!-- Standard Settings -->
-        <section class="flex flex-col sm:flex-row">
-            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
-                <label for="clientMaxBodySize" class="block font-medium text-gray-700 dark:text-gray-300">Max Body Size (Bytes)*</label>
-                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Nginx client_max_body_size directive in bytes.</p>
-            </div>
-            <div class="flex flex-col w-full">
-                <input id="clientMaxBodySize" type="number" formControlName="clientMaxBodySize" class="input">
-                <div class="form-error mt-2" [class.invisible]="!isInvalid('clientMaxBodySize')">
-                    Max Body Size is required and must be at least 1 MB.
+        <!-- Standard Settings (Only if NOT custom) -->
+        @if (form.get('domainType')?.value !== 'custom') {
+            <section class="flex flex-col sm:flex-row">
+                <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                    <label for="clientMaxBodySize" class="block font-medium text-gray-700 dark:text-gray-300">Max Body Size (Bytes)*</label>
+                    <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Nginx client_max_body_size directive in bytes.</p>
                 </div>
-            </div>
-        </section>
+                <div class="flex relative flex-col w-full">
+                    <input id="clientMaxBodySize" type="number" formControlName="clientMaxBodySize" class="input">
+                    <p class="absolute right-8 top-2">{{ form.get('clientMaxBodySize')?.value! | unitConvert }}</p>
+                    <div class="form-error mt-2" [class.invisible]="!isInvalid('clientMaxBodySize')">
+                        Max Body Size is required and must be at least 1 MB.
+                    </div>
+                </div>
+            </section>
 
-        <!-- Active Checkbox -->
+            <!-- SSL Checkbox -->
+            <section class="flex flex-col sm:flex-row">
+                <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                    <label for="isSsl" class="block font-medium text-gray-700 dark:text-gray-300">Enable SSL</label>
+                    <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Enables HTTPS redirect and 443 listeners.</p>
+                </div>
+                <input id="isSsl" type="checkbox" formControlName="isSsl" class="mt-2 h-6 w-6 rounded-md border-gray-300 text-black focus:ring-black dark:bg-gray-700">
+            </section>
+
+            <!-- SSL Paths (Only show if SSL checked) -->
+            @if (form.get('isSsl')?.value) {
+                <section class="flex flex-col sm:flex-row">
+                    <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                        <label class="block font-medium text-gray-700 dark:text-gray-300">Cert Path</label>
+                        <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Path to the SSL certificate file</p>
+                    </div>
+                    <div class="flex flex-col w-full">
+                        <input type="text" formControlName="sslCertificatePath" placeholder="Uses server default if blank" class="input">
+                    </div>
+                </section>
+                <section class="flex flex-col sm:flex-row">
+                    <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                        <label class="block font-medium text-gray-700 dark:text-gray-300">Key Path</label>
+                        <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Path to the SSL certificate key file</p>
+                    </div>
+                    <div class="flex flex-col w-full">
+                        <input type="text" formControlName="sslCertificateKeyPath" placeholder="Uses server default if blank" class="input">
+                    </div>
+                </section>
+            }
+        }
+
+        <!-- Active Checkbox (Always Visible) -->
         <section class="flex flex-col sm:flex-row">
             <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
                 <label for="isActive" class="block font-medium text-gray-700 dark:text-gray-300">Active</label>
@@ -106,35 +148,6 @@
             </div>
             <input id="isActive" type="checkbox" formControlName="isActive" class="mt-2 h-6 w-6 rounded-md border-gray-300 text-black focus:ring-black dark:bg-gray-700">
         </section>
-
-        <!-- SSL Checkbox -->
-        <section class="flex flex-col sm:flex-row">
-            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
-                <label for="isSsl" class="block font-medium text-gray-700 dark:text-gray-300">Enable SSL</label>
-                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Enables HTTPS redirect and 443 listeners.</p>
-            </div>
-            <input id="isSsl" type="checkbox" formControlName="isSsl" class="mt-2 h-6 w-6 rounded-md border-gray-300 text-black focus:ring-black dark:bg-gray-700">
-        </section>
-
-        <!-- SSL Paths (Only show if SSL checked) -->
-        <ng-container *ngIf="form.get('isSsl')?.value">
-            <section class="flex flex-col sm:flex-row">
-                <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
-                    <label class="block font-medium text-gray-700 dark:text-gray-300">Cert Path</label>
-                </div>
-                <div class="flex flex-col w-full">
-                    <input type="text" formControlName="sslCertificatePath" placeholder="Uses server default if blank" class="input">
-                </div>
-            </section>
-            <section class="flex flex-col sm:flex-row">
-                <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
-                    <label class="block font-medium text-gray-700 dark:text-gray-300">Key Path</label>
-                </div>
-                <div class="flex flex-col w-full">
-                    <input type="text" formControlName="sslCertificateKeyPath" placeholder="Uses server default if blank" class="input">
-                </div>
-            </section>
-        </ng-container>
 
         <button class="button mt-4" [disabled]="isLoading()">
             {{ isLoading() ? 'Redeploying...' : 'Update & Deploy Domain' }}

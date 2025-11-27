@@ -2,6 +2,7 @@ import { AsyncPipe, CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { UnitConvertPipe } from '@core/pipes/unit-convert-pipe';
 import { DomainsService } from '@core/services/domains';
 import { addParamHeader } from '@core/utils/add-param-header';
 import { Store } from '@ngrx/store';
@@ -11,7 +12,7 @@ import { catchError, tap } from 'rxjs';
 
 @Component({
   selector: 'app-edit',
-  imports: [ReactiveFormsModule, AsyncPipe, CommonModule],
+  imports: [ReactiveFormsModule, AsyncPipe, CommonModule, UnitConvertPipe],
   templateUrl: './edit.html',
   styleUrl: './edit.css',
 })
@@ -94,10 +95,16 @@ export class Edit {
     const targetHost = this.form.get('nginxTargetHost');
     const rootPath = this.form.get('nginxRootPath');
     const configContent = this.form.get('nginxConfigContent');
+    const maxBody = this.form.get('clientMaxBodySize');
+    const isSsl = this.form.get('isSsl');
 
     targetHost?.setValidators(null); targetHost?.disable();
     rootPath?.setValidators(null); rootPath?.disable();
     configContent?.setValidators(null); configContent?.disable();
+    
+    // Default enable common fields
+    maxBody?.enable();
+    isSsl?.enable();
 
     if (type === 'reverse_proxy') {
       targetHost?.enable();
@@ -108,6 +115,11 @@ export class Edit {
     } else if (type === 'custom') {
       configContent?.enable();
       configContent?.setValidators([Validators.required]);
+      
+      // Disable common fields for custom
+      maxBody?.disable();
+      isSsl?.disable();
+      isSsl?.setValue(false);
     }
     
     targetHost?.updateValueAndValidity();
@@ -136,7 +148,7 @@ export class Edit {
         sslCertificatePath: val.sslCertificatePath || undefined,
         sslCertificateKeyPath: val.sslCertificateKeyPath || undefined,
       };
-      
+      console.log(payload.isActive);
       this.domainsService.updateDomain(this.domainId, payload).subscribe(
         (res: any) => {
           this.isLoading.set(false);

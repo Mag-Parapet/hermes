@@ -28,9 +28,11 @@
                 <label for="fileMaxSize" class="block font-medium text-gray-700 dark:text-gray-300">File Max Size (Bytes)*</label>
                 <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Maximum allowed file size in bytes</p>
             </div>
-            <div class="flex flex-col w-full">
+            <div class="flex relative flex-col w-full">
                 <input id="fileMaxSize" type="number" formControlName="fileMaxSize" placeholder="100"
                     class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
+                <p class="absolute right-8 top-2">{{ form.get('fileMaxSize')?.value! | unitConvert }}</p>
+                
                 <div class="form-error mt-2" [class.invisible]="!isInvalid('fileMaxSize')">
                     File Max Size is required and must be a positive number.
                 </div>
@@ -42,9 +44,10 @@
                 <label for="quotaSize" class="block font-medium text-gray-700 dark:text-gray-300">Quota Size (Bytes)*</label>
                 <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Total storage quota in bytes</p>
             </div>
-            <div class="flex flex-col w-full">
+            <div class="flex relative flex-col w-full">
                 <input id="quotaSize" type="number" formControlName="quotaSize" placeholder="1024"
                     class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
+                <p class="absolute right-8 top-2">{{ form.get('quotaSize')?.value! | unitConvert }}</p>
                 <div class="form-error mt-2" [class.invisible]="!isInvalid('quotaSize')">
                     Quota Size is required and must be a positive number.
                 </div>

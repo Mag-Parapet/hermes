@@ -11,5 +11,5 @@ export const authGuard: CanActivateFn = (route, state) => {
     return true;
   }
 
-  return router.createUrlTree(['/auth'], { queryParams: { returnUrl: state.url }});
+  return router.createUrlTree(['/auth']);
 };

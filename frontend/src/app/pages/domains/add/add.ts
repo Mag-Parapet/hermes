@@ -6,10 +6,11 @@ import { Store } from '@ngrx/store';
 import { setLoading } from 'app/state/loading/loading.actions';
 import { CommonModule } from '@angular/common';
 import Snackbar from 'awesome-snackbar';
+import { UnitConvertPipe } from '@core/pipes/unit-convert-pipe';
 
 @Component({
   selector: 'app-add',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, UnitConvertPipe],
   templateUrl: './add.html',
   styleUrl: './add.css',
 })
@@ -34,7 +35,7 @@ export class Add {
     nginxRootPath: ['/var/www/html'],
     nginxConfigContent: [''],
 
-    maxBodySize: [52428800, [Validators.required, Validators.min(1)]],
+    clientMaxBodySize: [52428800, [Validators.required, Validators.min(1)]],
     isSsl: [true],
     isActive: [true],
     sslCertificatePath: [''],
@@ -55,10 +56,17 @@ export class Add {
     const targetHost = this.form.get('nginxTargetHost');
     const rootPath = this.form.get('nginxRootPath');
     const configContent = this.form.get('nginxConfigContent');
+    const maxBody = this.form.get('clientMaxBodySize');
+    const isSsl = this.form.get('isSsl');
 
+    // Default: Disable specific inputs
     targetHost?.disable();
     rootPath?.disable();
     configContent?.disable();
+    
+    // Default: Enable common inputs
+    maxBody?.enable();
+    isSsl?.enable();
 
     if (type === 'reverse_proxy') {
       targetHost?.enable();
@@ -69,6 +77,11 @@ export class Add {
     } else if (type === 'custom') {
       configContent?.enable();
       configContent?.setValidators([Validators.required]);
+      
+      // Disable common inputs for Custom type
+      maxBody?.disable();
+      isSsl?.disable();
+      isSsl?.setValue(false); // Clean state
     }
   }
 
@@ -87,8 +100,9 @@ export class Add {
         nginxRootPath: val.nginxRootPath || undefined,
         nginxConfigContent: val.nginxConfigContent || undefined,
 
-        clientMaxBodySize: val.maxBodySize ?? 52428800,
+        clientMaxBodySize: val.clientMaxBodySize ?? 52428800,
         isSsl: val.isSsl ?? true,
+        isActive: val.isActive ?? true,
         
         sslCertificatePath: val.sslCertificatePath || undefined,
         sslCertificateKeyPath: val.sslCertificateKeyPath || undefined

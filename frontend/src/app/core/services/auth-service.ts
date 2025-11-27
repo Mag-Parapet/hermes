@@ -75,9 +75,7 @@ export class AuthService {
           iconSrc: '/error.png',
           position: 'bottom-right',
         });
-        // const snackbar = new Snackbar('Authentication failed. Please check your credentials.', {
-        //   position: 'top-right',
-        // });
+        this.store.dispatch(setLoading({ state: false }));
         return throwError(() => error);
       }),
       tap(() => {

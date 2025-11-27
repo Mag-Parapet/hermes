@@ -86,45 +86,56 @@
         </section>
         }
         
-        <section class="flex flex-col sm:flex-row">
-            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
-                <label for="maxBodySize" class="block font-medium text-gray-700 dark:text-gray-300">Max Body (Bytes)</label>
-                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Maximum allowed size of client request body</p>
-            </div>
-            <div class="flex flex-col w-full">
-                <input id="maxBodySize" type="number" formControlName="maxBodySize" class="input">
-            </div>
-        </section>
+        @if (form.get('domainType')?.value !== 'custom') {
+            <section class="flex flex-col sm:flex-row">
+                <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                    <label for="maxBodySize" class="block font-medium text-gray-700 dark:text-gray-300">Max Body (Bytes)</label>
+                    <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Maximum allowed size of client request body</p>
+                </div>
+                <div class="flex relative flex-col w-full">
+                    <input id="clientMaxBodySize" type="number" formControlName="clientMaxBodySize" class="input">
+                    <p class="absolute right-8 top-2">{{ form.get('clientMaxBodySize')?.value! | unitConvert }}</p>
+                </div>
+            </section>
 
-        <section class="flex flex-col sm:flex-row">
-            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
-                <label for="isSsl" class="block font-medium text-gray-700 dark:text-gray-300">Enable SSL</label>
-                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Enable SSL for this domain</p>
-            </div>
-            <input id="isSsl" type="checkbox" formControlName="isSsl" class="mt-2 h-6 w-6 rounded-md border-gray-300 text-black focus:ring-black dark:bg-gray-700">
-        </section>
+            <section class="flex flex-col sm:flex-row">
+                <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                    <label for="isSsl" class="block font-medium text-gray-700 dark:text-gray-300">Enable SSL</label>
+                    <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Enable SSL for this domain</p>
+                </div>
+                <input id="isSsl" type="checkbox" formControlName="isSsl" class="mt-2 h-6 w-6 rounded-md border-gray-300 text-black focus:ring-black dark:bg-gray-700">
+            </section>
         
-        @if (form.get('isSsl')?.value) {
-            <section class="flex flex-col sm:flex-row">
-                <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
-                    <label class="block font-medium text-gray-700 dark:text-gray-300">Cert Path</label>
-                    <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Path to the SSL certificate file</p>
-                </div>
-                <div class="flex flex-col w-full">
-                    <input type="text" formControlName="sslCertificatePath" placeholder="Default" class="input">
-                </div>
-            </section>
+            @if (form.get('isSsl')?.value) {
+                <section class="flex flex-col sm:flex-row">
+                    <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                        <label class="block font-medium text-gray-700 dark:text-gray-300">Cert Path</label>
+                        <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Path to the SSL certificate file</p>
+                    </div>
+                    <div class="flex flex-col w-full">
+                        <input type="text" formControlName="sslCertificatePath" placeholder="Default" class="input">
+                    </div>
+                </section>
 
-            <section class="flex flex-col sm:flex-row">
-                <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
-                    <label class="block font-medium text-gray-700 dark:text-gray-300">Key Path</label>
-                    <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Path to the SSL certificate key file</p>
-                </div>
-                <div class="flex flex-col w-full">
-                    <input type="text" formControlName="sslCertificateKeyPath" placeholder="Default" class="input">
-                </div>
-            </section>
+                <section class="flex flex-col sm:flex-row">
+                    <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                        <label class="block font-medium text-gray-700 dark:text-gray-300">Key Path</label>
+                        <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Path to the SSL certificate key file</p>
+                    </div>
+                    <div class="flex flex-col w-full">
+                        <input type="text" formControlName="sslCertificateKeyPath" placeholder="Default" class="input">
+                    </div>
+                </section>
+            }
         }
+
+        <section class="flex flex-col sm:flex-row">
+            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                <label for="isActive" class="block font-medium text-gray-700 dark:text-gray-300">Active</label>
+                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Enable/disable the Nginx configuration.</p>
+            </div>
+            <input id="isActive" type="checkbox" formControlName="isActive" class="mt-2 h-6 w-6 rounded-md border-gray-300 text-black focus:ring-black dark:bg-gray-700">
+        </section>
 
         <button class="button mt-4" [disabled]="isLoading()">
             {{ isLoading() ? 'Deploying...' : 'Deploy Domain' }}

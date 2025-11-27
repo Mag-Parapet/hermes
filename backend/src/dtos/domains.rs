@@ -8,7 +8,7 @@ pub struct CreateDomainSchema {
     pub domain: String,
     pub client_max_body_size: Option<i64>,
     pub is_ssl: Option<bool>,
-    
+    pub is_active: Option<bool>,
     pub domain_type: String, 
 
     // NGINX FIELDS

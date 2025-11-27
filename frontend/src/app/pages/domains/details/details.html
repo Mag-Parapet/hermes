@@ -17,24 +17,27 @@
   
   <div class="text-sm border rounded-lg p-4 dark:border-gray-700">
     <p><span class="font-semibold">Type: </span>{{ domain.data.domainType }}</p>
-    <p class="mt-1"><span class="font-semibold">Max Body Size: </span>{{ domain.data.clientMaxBodySize | unitConvert }}</p>
-    <p class="mt-1"><span class="font-semibold">SSL: </span>{{ domain.data.isSsl ? 'Yes' : 'No' }}</p>
     <p class="mt-1"><span class="font-semibold">Active: </span>{{ domain.data.isActive ? 'Yes' : 'No' }}</p>
     
-    @if (domain.data.domainType === 'reverse_proxy') {
-        <p class="mt-1"><span class="font-semibold">Target Host: </span>{{ domain.data.nginxTargetHost }}</p>
-    } @else if (['web_server', 'static_host'].includes(domain.data.domainType)) {
-        <p class="mt-1"><span class="font-semibold">Root Path: </span>{{ domain.data.nginxRootPath }}</p>
-    } @else if (domain.data.domainType === 'custom') {
-        <div class="mt-4 p-3 mb-4 bg-gray-100 dark:bg-gray-900 rounded-lg max-h-64 overflow-auto ">
+    @if (domain.data.domainType == 'custom') {
+    <div class="mt-4 p-3 mb-4 bg-gray-100 dark:bg-gray-900 rounded-lg max-h-64 overflow-auto ">
             <span class="font-semibold block mb-2">Raw Config Content:</span>
             <pre class="whitespace-pre-wrap text-xs font-mono dark:text-gray-300">{{ domain.data.nginxConfigContent }}</pre>
         </div>
-    }
-
-    @if (domain.data.isSsl) {
-        <p class="mt-1"><span class="font-semibold">SSL Certificate Path: </span>{{ domain.data.sslCertificatePath }}</p>
-        <p class="mt-1"><span class="font-semibold">SSL Key Path: </span>{{ domain.data.sslCertificateKeyPath }}</p>
+    } @else {
+      <p class="mt-1"><span class="font-semibold">Max Body Size: </span>{{ domain.data.clientMaxBodySize | unitConvert }}</p>
+      <p class="mt-1"><span class="font-semibold">SSL: </span>{{ domain.data.isSsl ? 'Yes' : 'No' }}</p>
+      
+      @if (domain.data.domainType === 'reverse_proxy') {
+          <p class="mt-1"><span class="font-semibold">Target Host: </span>{{ domain.data.nginxTargetHost }}</p>
+      } @else if (['web_server', 'static_host'].includes(domain.data.domainType)) {
+          <p class="mt-1"><span class="font-semibold">Root Path: </span>{{ domain.data.nginxRootPath }}</p>
+      } 
+  
+      @if (domain.data.isSsl) {
+          <p class="mt-1"><span class="font-semibold">SSL Certificate Path: </span>{{ domain.data.sslCertificatePath }}</p>
+          <p class="mt-1"><span class="font-semibold">SSL Key Path: </span>{{ domain.data.sslCertificateKeyPath }}</p>
+      }
     }
     <hr class="my-3 border-gray-200 dark:border-gray-700"/>
     <p class="mt-1"><span class="font-semibold">Updated At: </span>{{ domain.data.updatedAt | date:'medium' }}</p>

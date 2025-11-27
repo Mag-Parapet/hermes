@@ -60,24 +60,30 @@ impl NginxTemplates {
         domain: &str,
         target_host: Option<&str>,
         root_path: Option<&str>,
-        client_max_body_size: i64, // CHANGED: Now accepts i64 (Bytes)
+        client_max_body_size: i64, 
         is_ssl: bool,
         cert_path: &str,
         key_path: &str,
         custom_config: Option<&str>,
     ) -> Result<String, String> {
         
-        // CHANGED: Nginx interprets raw numbers as bytes. Removed 'M' suffix.
+        // 1. CUSTOM CONFIG SHORT-CIRCUIT
+        if domain_type == "custom" {
+            return custom_config
+                .map(|s| s.to_string())
+                .ok_or_else(|| "Custom config requires nginx_config_content".to_string());
+        }
+
+        // --- STANDARD LOGIC FOR OTHER TYPES ---
+
         let client_max_body = format!("client_max_body_size {};", client_max_body_size);
 
-        // 1. Generate the Core Content Logic
+        // 2. Generate the Core Content Logic
         let content_logic = match domain_type {
             "reverse_proxy" => {
                 let raw_host = target_host.ok_or_else(|| "Reverse proxy requires nginx_target_host".to_string())?;
-                // CLEANUP: Strip trailing slashes
                 let clean_host = raw_host.trim_end_matches('/');
 
-                // SMART PROTOCOL
                 let upstream = if clean_host.starts_with("http://") || clean_host.starts_with("https://") {
                     clean_host.to_string()
                 } else {
@@ -94,13 +100,10 @@ impl NginxTemplates {
                 let root = root_path.ok_or_else(|| "Static host requires nginx_root_path".to_string())?;
                 Self::static_host_template(root)
             }
-            "custom" => {
-                custom_config.ok_or_else(|| "Custom config requires nginx_config_content".to_string())?.to_string()
-            }
             _ => return Err(format!("Domain type {} is not supported", domain_type)),
         };
 
-        // 2. Build Blocks based on SSL State
+        // 3. Build Blocks based on SSL State
         if is_ssl {
             let http_redirect_block = format!(
                 r#"
@@ -249,11 +252,15 @@ server {{
     fn static_host_template(root_path: &str) -> String {
         format!(
             r#"
-    root {root};
+    # Note: Using 'alias' for static hosts allows correct serving of dynamic deep paths (e.g. /id/file.ext).
     
     location / {{
+        alias {root}/;
+        
         # Strict Fallback
         try_files $uri $uri/ =404;
+        
+        # Caching configuration
         expires 30d;
         add_header Cache-Control "public, no-transform";
         access_log off;
