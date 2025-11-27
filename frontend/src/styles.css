@@ -52,7 +52,7 @@
 }
 
 .button {
-    @apply inline-flex w-fit items-center justify-center text-white h-fit bg-primary-600 px-4 py-2 rounded;
+    @apply inline-flex w-fit items-center justify-center text-white h-fit bg-primary-600 px-4 py-2 rounded cursor-pointer;
 }
 
 .button:disabled {

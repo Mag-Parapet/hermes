@@ -1,0 +1,125 @@
+<div class="flex justify-between gap-4 items-end">
+    <path [path]="currentPath()" (pathChange)="onPathChange($event)" />
+    <div class="flex gap-4 items-center mb-4">
+        <form [formGroup]="form" class="flex items-center">
+            <input type="text" formControlName="search" placeholder="Search files..."
+                class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
+        </form>
+        <button class="button pl-3" (click)="onUploadFiles()">
+            <span class="material-symbols-outlined scale-75">upload</span>
+            Upload Files
+        </button>
+        <button class="button-outline pl-3" (click)="onCreateFolder()">
+            <span class="material-symbols-outlined scale-75">create_new_folder</span>
+            Create Folder
+        </button>
+    </div>
+</div>
+<div class="border border-gray-200 dark:border-gray-700 rounded-md grow w-full overflow-x-auto ">
+    <table class="w-full caption-bottom text-sm" [class.h-full]="data().files?.length === 0">
+
+        <thead class="bg-card dark:bg-gray-700/50">
+            <tr
+                class="border-b dark:border-gray-700 transition-colors hover:bg-muted/50 dark:hover:bg-gray-700 data-[state=selected]:bg-muted">
+                <th class="h-10 px-2 text-left align-middle font-medium text-muted-foreground dark:text-gray-400">
+                    Name</th>
+                <th class="h-10 px-2 text-left align-middle font-medium text-muted-foreground dark:text-gray-400">
+                    Type</th>
+                <th class="h-10 px-2 text-left align-middle font-medium text-muted-foreground dark:text-gray-400">
+                    Size</th>
+                <th class="h-10 px-2 text-left align-middle font-medium text-muted-foreground dark:text-gray-400">
+                    Path</th>
+                <th class="h-10 px-2 text-left align-middle font-medium text-muted-foreground dark:text-gray-400">
+                    Created At</th>
+                <th class="h-10 px-2 text-left align-middle font-medium text-muted-foreground dark:text-gray-400">
+                    Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        @for (file of data().files; track file.id) {
+            @if (file.fileType === 'folder') {
+                <tr class="border-b border-gray-100 dark:border-gray-800 h-10 hover:bg-gray-50 dark:hover:bg-gray-700/60 cursor-pointer" (click)="onEnterFolder(file.name)">
+                    <td class="p-2">{{ file.name }}</td>
+                    <td class="p-2">{{ file.fileType | truncate: 50 }}</td>
+                    <td class="p-2">-</td>
+                    <td class="p-2">{{ file.path }}</td>
+                    <td class="p-2">{{ file.createdAt | date }}</td>
+                    <td >
+                        <button class="text-red-600 hover:underline cursor-pointer" (click)="onDeleteFile(file)">Delete</button>
+                    </td>
+                </tr>
+            }
+            @else {
+            <tr class="border-b border-gray-100 dark:border-gray-800 h-10 hover:bg-gray-50 dark:hover:bg-gray-700/60 cursor-pointer">
+                    <td class="p-2">{{ file.name }}</td>
+                    <td class="p-2">{{ file.fileType | truncate: 50 }}</td>
+                    <td class="p-2">{{ file.size | unitConvert }}</td>
+                    <td class="p-2">{{ file.path }}</td>
+                    <td class="p-2">{{ file.createdAt | date }}</td>
+                    <td>
+                        <div class="flex gap-4">
+                            @if (allowFilePreview(file)) {
+                                <button class="text-primary-600 hover:underline cursor-pointer" (click)="onOpenFilePreview(file)">Preview</button>
+                            }
+                            <button class="text-primary-600 hover:underline cursor-pointer" (click)="onOpenFileDetails(file)">Details</button>
+                            <button class="text-red-600 hover:underline cursor-pointer" (click)="onDeleteFile(file)">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            }
+        } @empty {
+            <tr>
+                <td colspan="6" class="p-4 text-center text-gray-500 dark:text-gray-400">
+                    No files found.
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    </div>
+
+    <div class="flex items-center justify-center md:justify-end w-full
+            space-x-6 lg:space-x-8 
+            flex-col md:flex-row space-y-4 md:space-y-0 mt-4">
+
+    <div class="flex items-center space-x-2">
+        <p class="text-sm font-medium dark:text-gray-300">Rezultate per pagină</p>
+        <select #pageSizeSelector (change)="onChangePageSize(pageSizeSelector.value)" class="flex items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent text-center text-sm shadow-sm
+            focus:outline-none focus:ring-1 focus:ring-ring
+            disabled:cursor-not-allowed disabled:opacity-50 h-8 w-[70px]
+            dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300
+            dark:focus:ring-gray-500 dark:focus:border-gray-500">
+            <option value="10" class="dark:bg-gray-800">10</option>
+            <option value="20" class="dark:bg-gray-800">20</option>
+            <option value="40" class="dark:bg-gray-800">40</option>
+            <option value="60" class="dark:bg-gray-800">60</option>
+            <option value="80" class="dark:bg-gray-800">80</option>
+            <option value="100" class="dark:bg-gray-800">100</option>
+        </select>
+    </div>
+
+    <div class="flex items-center space-x-2">
+        <button (click)="onPreviousPage()" [disabled]="page() === 1" class="flex items-center justify-between whitespace-nowrap rounded-md border bg-transparent text-center text-sm shadow-sm 
+            hover:border-gray-300 active:border-gray-500 
+            disabled:cursor-not-allowed disabled:opacity-50
+            dark:bg-gray-800 dark:border-gray-600 dark:hover:border-gray-400">
+            <span class="material-symbols-outlined scale-90 text-gray-500 dark:text-gray-400">chevron_left</span>
+        </button>
+        <button (click)="onNextPage()" [disabled]="page() === (data()?.pagination?.totalPages || 1)" class="flex items-center justify-between whitespace-nowrap rounded-md border bg-transparent text-center text-sm shadow-sm 
+            hover:border-gray-300 active:border-gray-500 
+            disabled:cursor-not-allowed disabled:opacity-50
+            dark:bg-gray-800 dark:border-gray-600 dark:hover:border-gray-400">
+            <span class="material-symbols-outlined scale-90 text-gray-500 dark:text-gray-400">chevron_right</span>
+        </button>
+        <select #pageSelector (change)="onChangePage(pageSelector.value)" [(ngModel)]="page" class="flex items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent text-center text-sm shadow-sm 
+            focus:outline-none hover:border-gray-300 focus:border-gray-500 
+            disabled:cursor-not-allowed disabled:opacity-50 h-8 w-[70px]
+            dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300
+            dark:focus:border-gray-500">
+            @for (page of pagesRange(); track page) {
+            <option value="{{ page }}" class="dark:bg-gray-800">{{ page }}</option>
+            }
+        </select>
+    </div>
+    </div>

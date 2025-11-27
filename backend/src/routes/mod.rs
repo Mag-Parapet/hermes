@@ -12,6 +12,8 @@ use std::sync::Arc;
 use crate::config::AppState;
 
 pub fn create_router(app_state: Arc<AppState>) -> Router {
+    let max_body = app_state.env.multer_max_file_size as usize;
+
     Router::new()
         .merge(auth::router())
         .merge(file_storage_api::router())
@@ -19,5 +21,5 @@ pub fn create_router(app_state: Arc<AppState>) -> Router {
         .merge(users::router())
         .merge(domains::router())
         .with_state(app_state)
-        .layer(DefaultBodyLimit::max(1024 * 1024 * 1024))  // 1 GB limit
+        .layer(DefaultBodyLimit::max(max_body))
 }

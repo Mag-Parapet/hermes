@@ -1,0 +1,36 @@
+<div class="flex flex-col gap-3 p-4 lg:p-8 
+            bg-white shadow-md rounded-lg dark:text-white
+            dark:bg-gray-800 dark:border dark:border-gray-700">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        {{ file.name }}
+    </h1>
+    <div class="rounded-lg mt-1">
+        <p><span class="font-semibold">ID: </span>{{ file.id }}</p>
+        <p class="mt-1"><span class="font-semibold">Type: </span>{{ file.fileType }}</p>
+        <p class="mt-1"><span class="font-semibold">Size: </span>{{ file.size | unitConvert }}</p>
+        <p class="mt-1"><span class="font-semibold">Path: </span>{{ file.path }}</p>
+        <p class="mt-1"><span class="font-semibold">Url: </span><a class="hover:underline" href="{{ file.url }}" target="_blank" rel="noopener noreferrer">{{ file.url }}</a></p>
+        @if (file.variants) {
+            <div class="mt-2">
+                <span class="font-semibold">Variants:</span>
+                <ul class="list-disc list-inside mt-1">
+                    @for (variantKey of Object.keys(file.variants); track variantKey) {
+                        <li class="mt-2">
+                            @if (variantKey !== 'blurhash') {
+                            <span class="font-medium">{{ variantKey }}: </span> <a class="hover:underline" href="{{ file.variants[variantKey] }}" target="_blank" rel="noopener noreferrer">{{ file.variants[variantKey] }}</a>
+                            }
+                            @else {
+                            <span class="font-medium">{{ variantKey }}: </span> {{ file.variants[variantKey] }}
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+        <hr class="my-3 border-gray-200 dark:border-gray-700" />
+        <p class="mt-1"><span class="font-semibold">Updated At: </span>{{ file.updatedAt | date:'medium' }}
+        </p>
+        <p class="mt-1"><span class="font-semibold">Created At: </span>{{ file.createdAt | date:'medium' }}
+        </p>
+    </div>
+</div>

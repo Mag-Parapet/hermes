@@ -1,0 +1,36 @@
+@if (fileStorage$ | async; as fileStorage) {
+    <div class="text-sm border rounded-lg p-4 dark:border-gray-700">
+        <div class="flex p-2 mb-2 bg-gray-100 dark:bg-gray-900 rounded-lg items-center cursor-pointer" (click)="onCopyApiKey(fileStorage.data.apiKey)">
+            <div class="flex items-center w-20 bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded-lg mr-4">
+            @if (copied()) {
+                <span class="material-symbols-outlined scale-[60%]">check</span>
+                <span>Saved</span>
+            }
+            @else {
+                <span class="material-symbols-outlined scale-[60%]">content_copy</span>
+                <span>Copy</span>
+            }
+            </div>
+            <pre class="whitespace-pre-wrap font-mono dark:text-gray-300">{{ fileStorage.data.apiKey }}</pre>
+        </div>
+        <p><span class="font-semibold">File Max Size: </span>{{ fileStorage.data.fileMaxSize | unitConvert }}</p>
+        <p class="mt-1"><span class="font-semibold">Allowed File Types: </span>{{ fileStorage.data.allowedFileTypes }}
+        </p>
+        <p class="mt-1"><span class="font-semibold">Active: </span>{{ fileStorage.data.isActive ? 'Yes' : 'No' }}</p>
+        <p class="mt-1"><span class="font-semibold">Compression: </span>{{ fileStorage.data.compressionEnabled ? 'Yes' :
+            'No' }}</p>
+        <p class="mt-1"><span class="font-semibold">Space: </span>{{ fileStorage.data.currentSize | unitConvert }} / {{ fileStorage.data.quotaSize | unitConvert }} ({{ Math.round(fileStorage.data.currentSize / fileStorage.data.quotaSize * 100) }}%)</p>
+
+        @if (fileStorage.data.compressionEnabled) {
+        <p class="mt-1"><span class="font-semibold">Image Resize Max Size: </span>{{ fileStorage.data.imgResizeMaxSize
+            }}</p>
+        <p class="mt-1"><span class="font-semibold">Image Default Format: </span>{{ fileStorage.data.imgDefaultFormat }}
+        </p>
+        }
+        <hr class="my-3 border-gray-200 dark:border-gray-700" />
+        <p class="mt-1"><span class="font-semibold">Updated At: </span>{{ fileStorage.data.updatedAt | date:'medium' }}
+        </p>
+        <p class="mt-1"><span class="font-semibold">Created At: </span>{{ fileStorage.data.createdAt | date:'medium' }}
+        </p>
+    </div>
+}

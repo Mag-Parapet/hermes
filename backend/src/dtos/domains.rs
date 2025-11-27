@@ -1,31 +1,42 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::{models::domain, dtos::pagination::PaginationMeta};
+use crate::{models::domain::Domain, dtos::pagination::PaginationMeta};
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateDomainSchema {
     pub domain: String,
-    pub port: i32,
-    pub max_body_size: Option<i32>,
+    pub client_max_body_size: Option<i64>,
     pub is_ssl: Option<bool>,
-    pub is_active: Option<bool>,
-    /// Path to SSL certificate (e.g., /etc/letsencrypt/live/domain/fullchain.pem)
-    /// If not provided and is_ssl=true, defaults to Let's Encrypt path
+    
+    pub domain_type: String, 
+
+    // NGINX FIELDS
+    pub nginx_root_path: Option<String>,
+    pub nginx_target_host: Option<String>,
+    pub nginx_config_content: Option<String>,
+    
+    // SSL fields
     pub ssl_certificate_path: Option<String>,
-    /// Path to SSL private key (e.g., /etc/letsencrypt/live/domain/privkey.pem)
-    /// If not provided and is_ssl=true, defaults to Let's Encrypt path
     pub ssl_certificate_key_path: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateDomainSchema {
-    pub domain: String,
-    pub port: i32,
-    pub max_body_size: Option<i32>,
+    pub domain: Option<String>,
+    pub client_max_body_size: Option<i64>,
     pub is_ssl: Option<bool>,
     pub is_active: Option<bool>,
+    
+    pub domain_type: Option<String>,
+
+    // NGINX FIELDS
+    pub nginx_root_path: Option<String>,
+    pub nginx_target_host: Option<String>,
+    pub nginx_config_content: Option<String>,
+    
+    // SSL fields
     pub ssl_certificate_path: Option<String>,
     pub ssl_certificate_key_path: Option<String>,
 }
@@ -35,9 +46,17 @@ pub struct UpdateDomainSchema {
 pub struct DomainResponse {
     pub id: Uuid,
     pub domain: String,
-    pub port: i32,
     pub is_active: bool,
     pub is_ssl: bool,
+    
+    pub domain_type: String,
+
+    // NGINX FIELDS
+    pub nginx_root_path: Option<String>,
+    pub nginx_target_host: Option<String>,
+    pub nginx_config_content: Option<String>,
+    
+    // SSL fields
     pub ssl_certificate_path: Option<String>,
     pub ssl_certificate_key_path: Option<String>,
 }
@@ -48,12 +67,13 @@ pub struct DomainFilterOptions {
     pub page: Option<i64>,
     pub page_size: Option<i64>,
     pub search: Option<String>,
-    pub port: Option<i32>,
+    pub domain_type: Option<String>,
+    pub is_active: Option<bool>,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PaginatedDomainList {
-    pub domains: Vec<domain::Domain>,
+    pub domains: Vec<Domain>,
     pub pagination: PaginationMeta,
 }

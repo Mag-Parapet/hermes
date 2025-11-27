@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-use crate::{models::file_storage::FileStorage, dtos::pagination::PaginationMeta};
+use crate::dtos::pagination::PaginationMeta;
+use crate::models::file_storage::FileStorage;
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -12,6 +12,7 @@ pub struct CreateFileStorageSchema {
     pub img_default_format: Option<String>,
     pub allowed_file_types: Option<String>,
     pub is_active: Option<bool>,
+    pub quota_size: Option<i64>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -24,20 +25,7 @@ pub struct UpdateFileStorageSchema {
     pub img_default_format: Option<String>,
     pub allowed_file_types: Option<String>,
     pub is_active: Option<bool>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FileStorageResponse {
-    pub id: Uuid,
-    pub name: String,
-    pub file_max_size: i64,
-    pub compression_enabled: bool,
-    pub img_resize_max_size: i32,
-    pub img_default_format: String,
-    pub allowed_file_types: String,
-    pub is_active: bool,
-    pub api_key: Uuid,
+    pub quota_size: Option<i64>,
 }
 
 #[derive(Deserialize, Debug)]

@@ -1,1 +1,5 @@
-<p>loading works!</p>
+@if (loading$ | async) {
+<div class="w-full bg-gray-100 h-1 left-0 overflow-hidden top-0 absolute dark:bg-gray-800 z-50">
+  <div class="loading-bar bg-gray-500 dark:bg-gray-300 h-full w-full"></div>
+</div>
+}

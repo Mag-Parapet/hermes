@@ -4,21 +4,24 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ContentTable } from '@core/components/content-table/content-table';
+import { UnitConvertPipe } from '@core/pipes/unit-convert-pipe';
 import { FileStoragesService } from '@core/services/file-storages';
 import { Store } from '@ngrx/store';
 import { setLoading } from 'app/state/loading/loading.actions';
-import { map } from 'rxjs';
+import Snackbar from 'awesome-snackbar';
+import { catchError, map } from 'rxjs';
 
 @Component({
   selector: 'app-file-storages',
-  imports: [ContentTable, RouterLink, AsyncPipe, ReactiveFormsModule],
+  imports: [ContentTable, RouterLink, AsyncPipe, ReactiveFormsModule, UnitConvertPipe],
   templateUrl: './file-storages.html',
   styleUrl: './file-storages.css',
-  providers: [DatePipe]
+  providers: [DatePipe, UnitConvertPipe]
 })
 export class FileStorages {
   fileStoragesService = inject(FileStoragesService);
   datePipe = inject(DatePipe);
+  unitConvertPipe = inject(UnitConvertPipe);
   store = inject(Store);
 
   fb = new FormBuilder();
@@ -67,14 +70,23 @@ export class FileStorages {
         return {
           rows: res.data.fileStorages.map((fs: any) => [
             fs.name,
-            fs.maxFileSize + ' KB',
-            fs.compress ? 'Yes' : 'No',
+            this.unitConvertPipe.transform(fs.fileMaxSize ?? 'N/A'),
+            fs.compressionEnabled ? 'Yes' : 'No',
             fs.isActive ? 'Yes' : 'No',
-            this.datePipe.transform(fs.updatedAt, 'medium')
+            this.datePipe.transform(fs.updatedAt, 'medium'),
+            fs.id
           ]),
           total: res.data.total
         };
       })
-    );
+    ),
+    catchError((err) => {
+      new Snackbar(err.error?.message || `Failed to load file storages`, {
+        iconSrc: '/error.png',
+        position: 'bottom-right',
+      });
+      this.store.dispatch(setLoading({ state: false }));
+      return [];
+    })
   }
 }

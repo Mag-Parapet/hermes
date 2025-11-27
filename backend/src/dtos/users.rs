@@ -17,6 +17,8 @@ pub struct UserResponse {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenClaims {
     pub sub: String,
+    pub name: String,
+    pub email: String,
     pub role: String,
     pub exp: usize,
     pub iat: usize,

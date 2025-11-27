@@ -1,1 +1,37 @@
-<p>details works!</p>
+@if (fileStorage$ | async; as fileStorage) {
+<div class="flex flex-col h-full">
+    <div class="flex flex-col gap-4 mb-4">
+        <section class="flex flex-col sm:flex-row sm:justify-between sm:items-start">
+            <div class="flex flex-col gap-1">
+                <h1 class="text-2xl sm:text-3xl font-semibold dark:text-white">{{ fileStorage.data.name }}</h1>
+                <p class="text-lg font-medium text-gray-500 dark:text-gray-400">
+                    {{ fileStorage.data.id }}
+                </p>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto mt-4 sm:mt-0">
+                <button (click)="onDeleteFileStorage()" class="button-outline">Delete File Storage</button>
+                <a routerLink="edit" class="button">Edit File Storage</a>
+            </div>
+        </section>
+    </div>
+    <div class="flex gap-2 w-fit mb-3">
+        <a class="px-3 py-1.5 text-sm font-medium
+            bg-gray-100 dark:bg-gray-700 rounded-md
+            hover:bg-gray-200 dark:hover:bg-gray-600" 
+            routerLinkActive="bg-primary-200 hover:bg-primary-300 dark:bg-primary-700 dark:hover:bg-primary-600"
+            [routerLinkActiveOptions]="{ exact: true }"
+            routerLink="/file-storages/{{ fileStorage.data.id }}/">
+            Details
+        </a>
+        <a class="px-3 py-1.5 text-sm font-medium
+            bg-gray-100 dark:bg-gray-700 rounded-md
+            hover:bg-gray-200 dark:hover:bg-gray-600" 
+            routerLinkActive="bg-primary-200 hover:bg-primary-300 dark:bg-primary-700 dark:hover:bg-primary-600"
+            [routerLinkActiveOptions]="{ exact: true }"
+            routerLink="/file-storages/{{ fileStorage.data.id }}/files">
+            Files
+        </a>
+    </div>
+    <router-outlet (activate)="onActivate(fileStorage)" />
+</div>
+}

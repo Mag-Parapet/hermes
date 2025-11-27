@@ -15,7 +15,6 @@ pub struct CreateFileSchema {
 #[serde(rename_all = "camelCase")]
 pub struct CreateFolderSchema {
     pub name: String,
-    /// Parent folder path
     pub path: String, 
 }
 
@@ -44,7 +43,7 @@ pub struct FileResponse {
     pub id: Uuid,
     pub file_storage_id: Uuid,
     pub name: String,
-    pub path: String, // Logical Path
+    pub path: String,
     pub size: i64,
     pub file_type: String,
     pub is_folder: bool,

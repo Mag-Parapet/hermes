@@ -2,7 +2,7 @@
 
     <div class="flex items-center justify-between p-1 bg-white rounded-lg hover:bg-gray-100 
               cursor-pointer select-none
-              dark:bg-gray-800 dark:hover:bg-gray-700 border dark:border-gray-700" (click)="onToggleSidenav()">
+              dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700" (click)="onToggleSidenav()">
         <span class="material-symbols-outlined text-gray-500 dark:text-gray-400"
             [class.full]="!(collapsed$ | async)">dock_to_right</span>
     </div>

@@ -2,102 +2,132 @@
     <div class="flex flex-col gap-4 mb-8">
         <section class="flex flex-col gap-1">
             <h1 class="text-2xl sm:text-3xl font-semibold dark:text-white">Add Domain</h1>
-            <p class="text-gray-500 dark:text-gray-400">Create a new domain by filling out the form below.</p>
+            <p class="text-gray-500 dark:text-gray-400">Configure your Nginx site.</p>
         </section>
     </div>
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+        
         <section class="flex flex-col sm:flex-row">
             <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
                 <label for="domain" class="block font-medium text-gray-700 dark:text-gray-300">Domain*</label>
                 <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">The domain name (e.g. example.com)</p>
             </div>
             <div class="flex flex-col w-full">
-                <input id="domain" name="domain" type="text" required placeholder="e.g. 'example.com'"
-                    autofocus formControlName="domain"
+                <input id="domain" type="text" formControlName="domain" placeholder="example.com"
                     class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
                 <div class="form-error mt-2" [class.invisible]="!isInvalid('domain')">
                     Domain is required.
                 </div>
             </div>
         </section>
-
-        <section class="flex flex-col sm:flex-row">
-            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
-                <label for="port" class="block font-medium text-gray-700 dark:text-gray-300">Port*</label>
-                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">The port number (e.g. 3000)</p>
-            </div>
-            <div class="flex flex-col w-full">
-                <input id="port" name="port" type="number" min="1" max="65535" required placeholder="e.g. '3000'"
-                    formControlName="port"
-                    class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
-                <div class="form-error mt-2" [class.invisible]="!isInvalid('port')">
-                    Port is required and must be between 1 and 65535.
-                </div>
-            </div>
-        </section>
         
         <section class="flex flex-col sm:flex-row">
             <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
-                <label for="max_body_size" class="block font-medium text-gray-700 dark:text-gray-300">Max Body Size (MB)*</label>
-                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Maximum body size in megabytes</p>
+                <label for="domainType" class="block font-medium text-gray-700 dark:text-gray-300">Type*</label>
+                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">How Nginx should handle this domain</p>
             </div>
             <div class="flex flex-col w-full">
-                <input id="max_body_size" name="max_body_size" type="number" min="1" required placeholder="e.g. '1'"
-                    formControlName="maxBodySize"
+                <select id="domainType" formControlName="domainType"
+                    class="input bg-white dark:bg-gray-800">
+                    @for (type of domainTypes; track type.value) {
+                    <option [value]="type.value">{{ type.label }}</option>
+                    }
+                </select>
+            </div>
+        </section>
+
+        @if (form.get('domainType')?.value === 'reverse_proxy') {
+        <section class="flex flex-col sm:flex-row">
+            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                <label for="nginxTargetHost" class="block font-medium text-gray-700 dark:text-gray-300">Target Host*</label>
+                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Where to proxy traffic (e.g. 127.0.0.1:3000)</p>
+            </div>
+            <div class="flex flex-col w-full">
+                <input id="nginxTargetHost" type="text" formControlName="nginxTargetHost" placeholder="127.0.0.1:3000"
                     class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
-                <div class="form-error mt-2" [class.invisible]="!isInvalid('max_body_size')">
-                    Max Body Size is required and must be at least 1 MB.
+                <div class="form-error mt-2" [class.invisible]="!isInvalid('nginxTargetHost')">
+                    Target Host is required.
                 </div>
+            </div>
+        </section>
+        }
+
+        @if (['web_server', 'static_host'].includes(form.get('domainType')?.value || '')) {
+        <section class="flex flex-col sm:flex-row">
+            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                <label for="nginxRootPath" class="block font-medium text-gray-700 dark:text-gray-300">Root Path*</label>
+                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Folder path to serve files from</p>
+            </div>
+            <div class="flex flex-col w-full">
+                <input id="nginxRootPath" type="text" formControlName="nginxRootPath" placeholder="/var/www/html/mysite"
+                    class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
+                <div class="form-error mt-2" [class.invisible]="!isInvalid('nginxRootPath')">
+                    Root Path is required.
+                </div>
+            </div>
+        </section>
+        }
+
+        @if (form.get('domainType')?.value === 'custom') {
+        <section class="flex flex-col sm:flex-row">
+            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                <label for="nginxConfigContent" class="block font-medium text-gray-700 dark:text-gray-300">Nginx Config*</label>
+                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Raw Nginx server block content</p>
+            </div>
+            <div class="flex flex-col w-full">
+                <textarea id="nginxConfigContent" formControlName="nginxConfigContent" rows="10" 
+                    placeholder="location / { ... }"
+                    class="input font-mono text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400"></textarea>
+                <div class="form-error mt-2" [class.invisible]="!isInvalid('nginxConfigContent')">
+                    Config content is required.
+                </div>
+            </div>
+        </section>
+        }
+        
+        <section class="flex flex-col sm:flex-row">
+            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                <label for="maxBodySize" class="block font-medium text-gray-700 dark:text-gray-300">Max Body (Bytes)</label>
+                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Maximum allowed size of client request body</p>
+            </div>
+            <div class="flex flex-col w-full">
+                <input id="maxBodySize" type="number" formControlName="maxBodySize" class="input">
             </div>
         </section>
 
         <section class="flex flex-col sm:flex-row">
             <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
-                <label for="is_active" class="block font-medium text-gray-700 dark:text-gray-300">Active*</label>
-                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Set the domain as active</p>
-            </div>
-            <input id="is_active" name="is_active" type="checkbox" required placeholder="e.g. '5'"
-                formControlName="isActive" class="mt-2 h-6 w-6 rounded-md border-gray-300 text-black focus:ring-black
-            dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-gray-500 dark:focus:border-gray-500">
-        </section>
-        
-        <section class="flex flex-col sm:flex-row">
-            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
-                <label for="is_ssl" class="block font-medium text-gray-700 dark:text-gray-300">SSL*</label>
+                <label for="isSsl" class="block font-medium text-gray-700 dark:text-gray-300">Enable SSL</label>
                 <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Enable SSL for this domain</p>
             </div>
-            <input id="is_ssl" name="is_ssl" type="checkbox" required placeholder="e.g. '5'"
-                formControlName="isSsl" class="mt-2 h-6 w-6 rounded-md border-gray-300 text-black focus:ring-black
-            dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-gray-500 dark:focus:border-gray-500">
+            <input id="isSsl" type="checkbox" formControlName="isSsl" class="mt-2 h-6 w-6 rounded-md border-gray-300 text-black focus:ring-black dark:bg-gray-700">
         </section>
+        
+        @if (form.get('isSsl')?.value) {
+            <section class="flex flex-col sm:flex-row">
+                <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                    <label class="block font-medium text-gray-700 dark:text-gray-300">Cert Path</label>
+                    <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Path to the SSL certificate file</p>
+                </div>
+                <div class="flex flex-col w-full">
+                    <input type="text" formControlName="sslCertificatePath" placeholder="Default" class="input">
+                </div>
+            </section>
 
-        <section class="flex flex-col sm:flex-row">
-            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
-                <label for="ssl_certificate_path" class="block font-medium text-gray-700 dark:text-gray-300">SSL Certificate Path</label>
-                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Path to the SSL certificate file</p>
-            </div>
-            <div class="flex flex-col w-full">
-                <input id="ssl_certificate_path" name="ssl_certificate_path" type="text" placeholder="e.g. '/path/to/certificate.pem'"
-                    formControlName="sslCertificatePath"
-                    class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
-            </div>
-        </section>
-
-        <section class="flex flex-col sm:flex-row">
-            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
-                <label for="ssl_key_path" class="block font-medium text-gray-700 dark:text-gray-300">SSL Key Path</label>
-                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Path to the SSL key file</p>
-            </div>
-            <div class="flex flex-col w-full">
-                <input id="ssl_key_path" name="ssl_key_path" type="text" placeholder="e.g. '/path/to/key.pem'"
-                    formControlName="sslCertificateKeyPath"
-                    class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
-            </div>
-        </section>
+            <section class="flex flex-col sm:flex-row">
+                <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                    <label class="block font-medium text-gray-700 dark:text-gray-300">Key Path</label>
+                    <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Path to the SSL certificate key file</p>
+                </div>
+                <div class="flex flex-col w-full">
+                    <input type="text" formControlName="sslCertificateKeyPath" placeholder="Default" class="input">
+                </div>
+            </section>
+        }
 
         <button class="button mt-4" [disabled]="isLoading()">
-            {{ isLoading() ? 'Adding Domain...' : 'Add Domain' }}
+            {{ isLoading() ? 'Deploying...' : 'Deploy Domain' }}
         </button>
     </form>
 </div>

@@ -5,10 +5,11 @@ import { AuthService } from '@core/services/auth-service';
 import { ThemeService } from '@core/services/theme-service';
 import { Store } from '@ngrx/store';
 import { selectSidenavState } from 'app/state/sidenav/sidenav.reduce';
+import { QuicklinkModule } from 'ngx-quicklink';
 
 @Component({
   selector: 'app-sidenav',
-  imports: [RouterLink, RouterLinkActive, AsyncPipe],
+  imports: [RouterLink, RouterLinkActive, AsyncPipe, QuicklinkModule],
   templateUrl: './sidenav.html',
   styleUrl: './sidenav.css',
 })

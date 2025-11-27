@@ -1,1 +1,134 @@
-<p>edit works!</p>
+@if (storage$ | async) {
+<div class="flex flex-col h-full">
+    <div class="flex flex-col gap-4 mb-8">
+        <section class="flex flex-col gap-1">
+            <h1 class="text-2xl sm:text-3xl font-semibold dark:text-white">Edit File Storage</h1>
+            <p class="text-gray-500 dark:text-gray-400">Edit the file storage by modifying the form below.</p>
+        </section>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4">
+
+        <section class="flex flex-col sm:flex-row">
+            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                <label for="name" class="block font-medium text-gray-700 dark:text-gray-300">Name*</label>
+                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">The name of
+                    the file storage</p>
+            </div>
+            <div class="flex flex-col w-full">
+                <input id="name" type="text" formControlName="name" placeholder="My File Storage"
+                    class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
+                <div class="form-error mt-2" [class.invisible]="!isInvalid('name')">
+                    Name is required.
+                </div>
+            </div>
+        </section>
+        
+        <section class="flex flex-col sm:flex-row">
+            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                <label for="fileMaxSize" class="block font-medium text-gray-700 dark:text-gray-300">File Max Size (Bytes)*</label>
+                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Maximum allowed file size in bytes</p>
+            </div>
+            <div class="flex flex-col w-full">
+                <input id="fileMaxSize" type="number" formControlName="fileMaxSize" placeholder="100"
+                    class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
+                <div class="form-error mt-2" [class.invisible]="!isInvalid('fileMaxSize')">
+                    File Max Size is required and must be a positive number.
+                </div>
+            </div>
+        </section>
+
+        <section class="flex flex-col sm:flex-row">
+            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                <label for="quotaSize" class="block font-medium text-gray-700 dark:text-gray-300">Quota Size (Bytes)*</label>
+                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Total storage quota in bytes</p>
+            </div>
+            <div class="flex flex-col w-full">
+                <input id="quotaSize" type="number" formControlName="quotaSize" placeholder="1024"
+                    class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
+                <div class="form-error mt-2" [class.invisible]="!isInvalid('quotaSize')">
+                    Quota Size is required and must be a positive number.
+                </div>
+            </div>
+        </section>
+
+        <section class="flex flex-col sm:flex-row">
+            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                <label for="allowedFileTypes" class="block font-medium text-gray-700 dark:text-gray-300">Allowed File
+                    Types</label>
+                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">
+                    Comma-separated list of allowed file extensions (e.g., jpg,png,gif)</p>
+            </div>
+            <div class="flex flex-col w-full">
+                <input id="allowedFileTypes" type="text" formControlName="allowedFileTypes"
+                    placeholder="jpg,png,gif,webp"
+                    class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
+            </div>
+        </section>
+
+        <section class="flex flex-col sm:flex-row">
+            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                <label for="isActive" class="block font-medium text-gray-700 dark:text-gray-300">Status</label>
+                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Set the file
+                    storage as active or inactive</p>
+            </div>
+            <div class="flex flex-col w-full">
+                <select id="isActive" formControlName="isActive" class="input bg-white dark:bg-gray-800">
+                    <option [value]="true">Active</option>
+                    <option [value]="false">Inactive</option>
+                </select>
+            </div>
+        </section>
+
+        <section class="flex flex-col sm:flex-row">
+            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                <label for="compressionEnabled" class="block font-medium text-gray-700 dark:text-gray-300">Enable
+                    Compression</label>
+                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Enable or
+                    disable file compression</p>
+            </div>
+            <div class="flex flex-col w-full">
+                <input id="compressionEnabled" type="checkbox" formControlName="compressionEnabled"
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+            </div>
+        </section>
+
+        @if (form.get('compressionEnabled')?.value) {
+        <section class="flex flex-col sm:flex-row">
+            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                <label for="imgResizeMaxSize" class="block font-medium text-gray-700 dark:text-gray-300">Image Resize
+                    Max Size (px)* </label>
+                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Maximum
+                    dimension for image resizing in pixels</p>
+            </div>
+            <div class="flex flex-col w-full">
+                <input id="imgResizeMaxSize" type="number" formControlName="imgResizeMaxSize" placeholder="1024"
+                    class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
+                <div class="form-error mt-2" [class.invisible]="!isInvalid('imgResizeMaxSize')">
+                    Image Resize Max Size is required and must be a positive number.
+                </div>
+            </div>
+        </section>
+
+        <section class="flex flex-col sm:flex-row">
+            <div class="w-full sm:w-72 shrink-0 mb-2 sm:mb-0">
+                <label for="imgDefaultFormat" class="block font-medium text-gray-700 dark:text-gray-300">Image Default
+                    Format*</label>
+                <p class="w-full sm:w-60 block text-sm font-medium text-gray-400 dark:text-gray-500 mt-1">Default format
+                    for image conversion</p>
+            </div>
+            <div class="flex flex-col w-full">
+                <select id="imgDefaultFormat" formControlName="imgDefaultFormat"
+                    class="input bg-white dark:bg-gray-800">
+                    <option value="jpeg">JPEG</option>
+                    <option value="png">PNG</option>
+                    <option value="webp">WEBP</option>
+                </select>
+            </div>
+        </section>
+        }
+
+        <button class="button mt-4">Update File Storage</button>
+    </form>
+</div>
+}

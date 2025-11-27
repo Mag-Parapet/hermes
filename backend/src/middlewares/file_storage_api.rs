@@ -10,8 +10,6 @@ use crate::{
     config::AppState,
     models::file_storage::FileStorage,
 };
-
-// Renamed struct as requested to match file/purpose
 pub struct FileStorageApiKeyAuth(pub FileStorage);
 
 #[async_trait]

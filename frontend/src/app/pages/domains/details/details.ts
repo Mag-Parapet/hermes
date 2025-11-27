@@ -2,16 +2,18 @@ import { AsyncPipe, DatePipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ConfirmDialog } from '@core/components/confirm-dialog/confirm-dialog';
+import { UnitConvertPipe } from '@core/pipes/unit-convert-pipe';
 import { DomainsService } from '@core/services/domains';
 import { addParamHeader } from '@core/utils/add-param-header';
 import { DialogService } from '@ngneat/dialog';
 import { Store } from '@ngrx/store';
 import { setLoading } from 'app/state/loading/loading.actions';
+import Snackbar from 'awesome-snackbar';
 import { catchError, tap } from 'rxjs';
 
 @Component({
   selector: 'app-details',
-  imports: [AsyncPipe, DatePipe, RouterLink],
+  imports: [AsyncPipe, DatePipe, RouterLink, UnitConvertPipe],
   templateUrl: './details.html',
   styleUrl: './details.css',
 })
@@ -27,10 +29,14 @@ export class Details {
   domain$ = this.domainsService.getDomainById(this.domainId).pipe(
     tap(() => this.store.dispatch(setLoading({ state: false }))),
     addParamHeader(':domainId', 'data.domain'),
-    catchError((error: any) => {
-      if (error.status === 404) {
+    catchError((err: any) => {
+      if (err.status === 404) {
         this.router.navigate(['/404']);
       }
+      new Snackbar(err.error?.message || `Failed to load domain details`, {
+        iconSrc: '/error.png',
+        position: 'bottom-right',
+      });
       this.router.navigate(['/domains']);
       return [];
     })
@@ -50,12 +56,24 @@ export class Details {
     d.afterClosed$.subscribe((result: any) => {
       if (result?.confirm) {
         this.store.dispatch(setLoading({ state: true }));
-        this.domainsService.deleteDomain(this.domainId).subscribe(
-          () => {
+        this.domainsService.deleteDomain(this.domainId).subscribe({
+          next: () => {
             this.store.dispatch(setLoading({ state: false }));
             this.router.navigate(['/domains']);
+            new Snackbar(`Domain deleted successfully`, {
+              iconSrc: '/success.png',
+              position: 'bottom-right',
+            });
+          },
+          error: (err) => {
+            this.store.dispatch(setLoading({ state: false }));
+            new Snackbar(err.error?.message || `Failed to delete domain`, {
+              iconSrc: '/error.png',
+              position: 'bottom-right',
+            });
+            console.error(err);
           }
-        );
+        });
       }
     });
   }

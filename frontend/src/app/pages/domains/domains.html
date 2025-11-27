@@ -13,9 +13,21 @@
                class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
       </div>
       <div class="w-full sm:w-auto">
-        <input placeholder="Port" formControlName="port" 
-               class="input placeholder:text-gray-500 dark:placeholder:text-gray-400">
+        <select formControlName="domainType" class="input bg-white dark:bg-gray-800">
+          <option value="">All Types</option>
+          <option value="reverse_proxy">Reverse Proxy</option>
+          <option value="web_server">Web Server</option>
+          <option value="static_host">Static Host</option>
+          <option value="custom">Custom</option>
+        </select>
       </div>
+        <div class="w-full sm:w-auto">
+            <select formControlName="isActive" class="input bg-white dark:bg-gray-800">
+                <option value="">All Statuses</option>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+            </select>
+        </div>
     </form>
   </div>
   

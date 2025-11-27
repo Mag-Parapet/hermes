@@ -1,10 +1,13 @@
-use axum::{routing::{post, get, delete}, Router};
+use axum::{routing::{get, post, put, delete}, Router};
 use std::sync::Arc;
 use crate::{config::AppState, controllers::file_storage};
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/storages", post(file_storage::create_storage))
+        .route("/storages/:storage_id", get(file_storage::get_storage))
+        .route("/storages/:storage_id", put(file_storage::update_storage))
+        .route("/storages/:storage_id", delete(file_storage::delete_storage))
         .route("/storages", get(file_storage::list_storages))
         .route("/storages/:storage_id/upload", post(file_storage::upload_file))
         .route("/storages/:storage_id/files", get(file_storage::list_files))

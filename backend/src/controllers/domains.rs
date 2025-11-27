@@ -1,19 +1,20 @@
 use std::sync::Arc;
-use axum::{
-    extract::{State, Json, Path, Query},
-    http::StatusCode, 
-    response::IntoResponse
-};
+use axum::{extract::{State, Json, Path, Query}, http::StatusCode, response::IntoResponse};
 use serde_json::json;
 use sqlx::{QueryBuilder, Postgres};
+use uuid::Uuid;
 
 use crate::{
-    config::AppState, 
-    dtos::{domains::{CreateDomainSchema, DomainFilterOptions, PaginatedDomainList, UpdateDomainSchema}, pagination::PaginationMeta}, 
-    middlewares::auth::JWTAuth, 
-    models::domain::Domain, 
-    utils::nginx::NginxManager
+    config::AppState,
+    middlewares::auth::JWTAuth,
+    models::domain::Domain,
+    dtos::{
+        domains::{CreateDomainSchema, UpdateDomainSchema, DomainFilterOptions, PaginatedDomainList},
+        pagination::PaginationMeta,
+    },
+    utils::{nginx::NginxManager, domain_validator::DomainValidator},
 };
+
 
 pub async fn create_domain(
     State(data): State<Arc<AppState>>,
@@ -21,215 +22,262 @@ pub async fn create_domain(
     Json(body): Json<CreateDomainSchema>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     
-    // 1. Validation: Check if domain OR port exists in DB
-    let existing_entry = sqlx::query_as::<_, Domain>("SELECT * FROM domains WHERE domain = $1 OR port = $2")
+    // 1. Basic Domain Syntax Validation
+    if let Err(e) = DomainValidator::validate_domain_name(&body.domain) {
+        return Err((StatusCode::BAD_REQUEST, Json(json!({"message": e}))));
+    }
+
+    let existing_entry = sqlx::query_as::<_, Domain>("SELECT * FROM domains WHERE domain = $1")
         .bind(&body.domain)
-        .bind(body.port)
         .fetch_optional(&data.db).await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?;
 
-    if let Some(entry) = existing_entry {
-        if entry.domain == body.domain {
-            return Err((StatusCode::CONFLICT, Json(json!({"message": "Domain already managed"}))));
-        }
-        if entry.port == body.port {
-            return Err((StatusCode::CONFLICT, Json(json!({"message": format!("Port {} is already in use", body.port)}))));
-        }
+    if existing_entry.is_some() {
+        return Err((StatusCode::CONFLICT, Json(json!({"message": "Domain already managed"}))));
     }
 
-    // 2. Prepare values
-    let max_mb = body.max_body_size.unwrap_or(50);
-    let is_ssl = body.is_ssl.unwrap_or(true);
-    let is_active = body.is_active.unwrap_or(true);
+    let client_max_body_size = body.client_max_body_size.unwrap_or(data.env.multer_max_file_size as i64).max(0);
+    
+    let cert_path = body.ssl_certificate_path.unwrap_or_else(|| data.env.default_ssl_cert_path.clone());
+    let key_path = body.ssl_certificate_key_path.unwrap_or_else(|| data.env.default_ssl_key_path.clone());
+    let is_ssl = body.is_ssl.unwrap_or(data.env.default_ssl_enabled);
 
-    // 3. Attempt Nginx Deployment if active
-    if is_active {
-        let ssl_cert = body.ssl_certificate_path.as_deref();
-        let ssl_key = body.ssl_certificate_key_path.as_deref();
-        
-        match NginxManager::deploy_site(&body.domain, body.port, max_mb, is_ssl, ssl_cert, ssl_key) {
-            Ok(_) => {
-                // 4. Success - Save to DB
-                let domain = sqlx::query_as::<_, Domain>(
-                    "INSERT INTO domains (user_id, domain, port, max_body_size, is_ssl, is_active, ssl_certificate_path, ssl_certificate_key_path) 
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-                     RETURNING *"
-                )
-                .bind(user.id)
-                .bind(&body.domain)
-                .bind(body.port)
-                .bind(max_mb)
-                .bind(is_ssl)
-                .bind(is_active)
-                .bind(&body.ssl_certificate_path)
-                .bind(&body.ssl_certificate_key_path)
-                .fetch_one(&data.db).await
-                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?;
+    let nginx_target_host = body.nginx_target_host.as_deref();
+    let nginx_root_path = body.nginx_root_path.as_deref();
+    let nginx_config_content = body.nginx_config_content.as_deref();
+    
+    let is_nginx_type = matches!(body.domain_type.as_str(), "reverse_proxy" | "web_server" | "static_host" | "custom");
 
-                Ok((StatusCode::CREATED, Json(json!({"status": "success", "data": domain}))))
+    if is_nginx_type {
+        match body.domain_type.as_str() {
+            "reverse_proxy" => {
+                if let Some(target) = nginx_target_host {
+                    if let Err(e) = DomainValidator::validate_proxy_target(target) {
+                        return Err((StatusCode::BAD_REQUEST, Json(json!({"message": e}))));
+                    }
+                } else {
+                    return Err((StatusCode::BAD_REQUEST, Json(json!({"message": "Type 'reverse_proxy' requires 'nginxTargetHost'"}))));
+                }
             }
+            "web_server" | "static_host" => {
+                if let Some(root) = nginx_root_path {
+                     if let Err(e) = DomainValidator::validate_root_path(root) {
+                        return Err((StatusCode::BAD_REQUEST, Json(json!({"message": e}))));
+                    }
+                } else {
+                    return Err((StatusCode::BAD_REQUEST, Json(json!({"message": "Web/Static types require 'nginxRootPath'"}))));
+                }
+            }
+            "custom" => {
+                if nginx_config_content.is_none() {
+                    return Err((StatusCode::BAD_REQUEST, Json(json!({"message": "Custom type requires 'nginxConfigContent'"}))));
+                }
+                if nginx_config_content.unwrap().trim().is_empty() {
+                     return Err((StatusCode::BAD_REQUEST, Json(json!({"message": "Custom configuration cannot be empty"}))));
+                }
+            }
+            _ => {}
+        }
+
+        if is_ssl {
+            if let Err(e) = DomainValidator::validate_ssl_files(&cert_path, &key_path) {
+                return Err((StatusCode::BAD_REQUEST, Json(json!({"message": e}))));
+            }
+        }
+
+    } else {
+          return Err((StatusCode::BAD_REQUEST, Json(json!({"message": "Invalid or unsupported domain type specified"}))));
+    }
+    
+    // 3. Attempt Nginx Deployment
+    if is_nginx_type {
+        match NginxManager::deploy_site(
+            &body.domain_type,
+            &body.domain, 
+            nginx_target_host, 
+            nginx_root_path,
+            client_max_body_size, // Passing bytes
+            is_ssl,
+            &cert_path,
+            &key_path,
+            nginx_config_content
+        ) {
+            Ok(_) => { /* continue */ }
             Err(e) => {
                 tracing::error!("Nginx deployment failed: {}", e);
-                Err((StatusCode::BAD_REQUEST, Json(json!({"status": "fail", "message": e}))))
+                return Err((StatusCode::BAD_REQUEST, Json(json!({"status": "fail", "message": e}))));
             }
         }
-    } else {
-        // Inactive - just save to DB
-        let domain = sqlx::query_as::<_, Domain>(
-            "INSERT INTO domains (user_id, domain, port, max_body_size, is_ssl, is_active, ssl_certificate_path, ssl_certificate_key_path) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-             RETURNING *"
-        )
-        .bind(user.id)
-        .bind(&body.domain)
-        .bind(body.port)
-        .bind(max_mb)
-        .bind(is_ssl)
-        .bind(false)
-        .bind(&body.ssl_certificate_path)
-        .bind(&body.ssl_certificate_key_path)
-        .fetch_one(&data.db).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?;
-
-        Ok((StatusCode::CREATED, Json(json!({"status": "success", "data": domain}))))
     }
+    
+    // 4. Save to DB
+    // Ensure DB schema expects bytes (INTEGER/BIGINT)
+    let domain = sqlx::query_as::<_, Domain>(
+        r#"
+        INSERT INTO domains (
+            user_id, domain, client_max_body_size, is_ssl, is_active, 
+            domain_type, nginx_target_host, nginx_root_path, nginx_config_content,
+            ssl_certificate_path, ssl_certificate_key_path
+        ) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) 
+        RETURNING *
+        "#
+    )
+    .bind(user.id)
+    .bind(&body.domain)
+    .bind(client_max_body_size)
+    .bind(is_ssl)
+    .bind(true)
+    .bind(&body.domain_type)
+    .bind(body.nginx_target_host)
+    .bind(body.nginx_root_path)
+    .bind(body.nginx_config_content)
+    .bind(cert_path)
+    .bind(key_path)
+    .fetch_one(&data.db).await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?;
+
+    Ok((StatusCode::CREATED, Json(json!({"status": "success", "data": domain}))))
+}
+
+pub async fn get_domain(
+    State(data): State<Arc<AppState>>,
+    JWTAuth(user): JWTAuth,
+    Path(id): Path<Uuid>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    
+    let domain = sqlx::query_as::<_, Domain>("SELECT * FROM domains WHERE id = $1 AND user_id = $2")
+        .bind(id)
+        .bind(user.id)
+        .fetch_optional(&data.db).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?
+        .ok_or((StatusCode::NOT_FOUND, Json(json!({"message": "Domain not found"}))))?;
+
+    Ok(Json(json!({"status": "success", "data": domain})))
 }
 
 pub async fn update_domain(
     State(data): State<Arc<AppState>>,
     JWTAuth(user): JWTAuth,
-    Path(id): Path<uuid::Uuid>,
+    Path(id): Path<Uuid>,
     Json(body): Json<UpdateDomainSchema>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    
-    // 1. Fetch existing domain
-    let existing_domain = sqlx::query_as::<_, Domain>(
-        "SELECT * FROM domains WHERE id = $1 AND user_id = $2"
-    )
-    .bind(id)
-    .bind(user.id)
-    .fetch_optional(&data.db).await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?
-    .ok_or((StatusCode::NOT_FOUND, Json(json!({"message": "Domain not found"}))))?;
 
-    // 2. Check for conflicts if domain or port is being changed
-    if body.domain != existing_domain.domain {
-        let conflict = sqlx::query_as::<_, Domain>(
-            "SELECT * FROM domains WHERE domain = $1 AND id != $2"
-        )
-        .bind(&body.domain)
+    let existing = sqlx::query_as::<_, Domain>("SELECT * FROM domains WHERE id = $1 AND user_id = $2")
         .bind(id)
+        .bind(user.id)
         .fetch_optional(&data.db).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?
+        .ok_or((StatusCode::NOT_FOUND, Json(json!({"message": "Domain not found"}))))?;
 
-        if conflict.is_some() {
-            return Err((StatusCode::CONFLICT, Json(json!({"message": "Domain already managed"}))));
+    let new_domain_name = body.domain.as_deref().unwrap_or(&existing.domain);
+    let new_domain_type = body.domain_type.as_deref().unwrap_or(&existing.domain_type);
+    
+    if body.domain.is_some() {
+        if let Err(e) = DomainValidator::validate_domain_name(new_domain_name) {
+             return Err((StatusCode::BAD_REQUEST, Json(json!({"message": e}))));
         }
     }
 
-    if body.port != existing_domain.port {
-        let conflict = sqlx::query_as::<_, Domain>(
-            "SELECT * FROM domains WHERE port = $1 AND id != $2"
-        )
-        .bind(body.port)
-        .bind(id)
-        .fetch_optional(&data.db).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?;
+    let new_target_host = body.nginx_target_host.as_deref().or(existing.nginx_target_host.as_deref());
+    let new_root_path = body.nginx_root_path.as_deref().or(existing.nginx_root_path.as_deref());
+    let new_config_content = body.nginx_config_content.as_deref().or(existing.nginx_config_content.as_deref());
 
-        if conflict.is_some() {
-            return Err((StatusCode::CONFLICT, Json(json!({"message": format!("Port {} is already in use", body.port)}))));
-        }
-    }
-
-    // 3. Prepare updated values
-    let updated_max_body = body.max_body_size.unwrap_or(
-        existing_domain.max_body_size.unwrap_or(50)
-    );
-    let updated_ssl = body.is_ssl.unwrap_or(
-        existing_domain.is_ssl.unwrap_or(true)
-    );
-    let updated_active = body.is_active.unwrap_or(
-        existing_domain.is_active.unwrap_or(true)
-    );
+    // CHANGED: Use bytes. Fallback to existing value which is already bytes.
+    let new_max_body_size = body.client_max_body_size.or(existing.client_max_body_size).unwrap_or(10485760); // Default 10MB in bytes
     
-    // 4. Detect changes that require Nginx update
-    let domain_changed = body.domain != existing_domain.domain;
-    let port_changed = body.port != existing_domain.port;
-    let max_body_changed = body.max_body_size.map_or(false, |new_val| {
-        existing_domain.max_body_size.map_or(true, |old_val| new_val != old_val)
-    });
-    let ssl_changed = body.is_ssl.map_or(false, |new_val| {
-        existing_domain.is_ssl.map_or(true, |old_val| new_val != old_val)
-    });
-    let activation_changed = body.is_active.map_or(false, |new_val| {
-        existing_domain.is_active.map_or(true, |old_val| new_val != old_val)
-    });
-    let ssl_cert_changed = body.ssl_certificate_path.is_some() 
-        && body.ssl_certificate_path.as_ref() != existing_domain.ssl_certificate_path.as_ref();
-    let ssl_key_changed = body.ssl_certificate_key_path.is_some() 
-        && body.ssl_certificate_key_path.as_ref() != existing_domain.ssl_certificate_key_path.as_ref();
-    
-    // Use new SSL paths if provided, otherwise keep existing ones
-    let updated_ssl_cert = body.ssl_certificate_path.clone().or(existing_domain.ssl_certificate_path.clone());
-    let updated_ssl_key = body.ssl_certificate_key_path.clone().or(existing_domain.ssl_certificate_key_path.clone());
+    let new_is_ssl = body.is_ssl.or(existing.is_ssl).unwrap_or(false);
+    let new_cert_path = body.ssl_certificate_path.as_deref().or(existing.ssl_certificate_path.as_deref()).unwrap_or("default");
+    let new_key_path = body.ssl_certificate_key_path.as_deref().or(existing.ssl_certificate_key_path.as_deref()).unwrap_or("default");
 
-    let needs_nginx_update = domain_changed || port_changed || max_body_changed 
-        || ssl_changed || activation_changed || ssl_cert_changed || ssl_key_changed;
+    let is_nginx_type = matches!(new_domain_type, "reverse_proxy" | "web_server" | "static_host" | "custom");
 
-    // 5. Handle Nginx configuration changes
-    if needs_nginx_update {
-        // Remove old config if it was active
-        if existing_domain.is_active.unwrap_or(false) {
-            match NginxManager::delete_site(&existing_domain.domain) {
-                Ok(_) => tracing::info!("Removed old Nginx config for: {}", existing_domain.domain),
-                Err(e) => tracing::warn!("Failed to remove old Nginx config: {}", e),
+    if is_nginx_type {
+        match new_domain_type {
+            "reverse_proxy" => {
+                if let Some(target) = new_target_host {
+                    if let Err(e) = DomainValidator::validate_proxy_target(target) {
+                        return Err((StatusCode::BAD_REQUEST, Json(json!({"message": e}))));
+                    }
+                } else {
+                    return Err((StatusCode::BAD_REQUEST, Json(json!({"message": "Type 'reverse_proxy' requires 'nginxTargetHost'"}))));
+                }
             }
+            "web_server" | "static_host" => {
+                 if let Some(root) = new_root_path {
+                     if let Err(e) = DomainValidator::validate_root_path(root) {
+                        return Err((StatusCode::BAD_REQUEST, Json(json!({"message": e}))));
+                    }
+                } else {
+                    return Err((StatusCode::BAD_REQUEST, Json(json!({"message": "Web/Static types require 'nginxRootPath'"}))));
+                }
+            }
+            "custom" => {
+                if new_config_content.is_none() {
+                    return Err((StatusCode::BAD_REQUEST, Json(json!({"message": "Custom type requires 'nginxConfigContent'"}))));
+                }
+            }
+            _ => {}
         }
+        
+        // if new_is_ssl {
+        //     if let Err(e) = DomainValidator::validate_ssl_files(new_cert_path, new_key_path) {
+        //         return Err((StatusCode::BAD_REQUEST, Json(json!({"message": e}))));
+        //     }
+        // }
+    }
 
-        // Deploy new config if now active
-        if updated_active {
-            let ssl_cert = updated_ssl_cert.as_deref();
-            let ssl_key = updated_ssl_key.as_deref();
-            
-            match NginxManager::deploy_site(&body.domain, body.port, updated_max_body, updated_ssl, ssl_cert, ssl_key) {
-                Ok(_) => {
-                    tracing::info!("Nginx configuration updated for domain: {}", body.domain);
-                }
-                Err(e) => {
-                    tracing::error!("Nginx deployment failed: {}", e);
-                    return Err((StatusCode::BAD_REQUEST, Json(json!({
-                        "status": "fail", 
-                        "message": format!("Failed to deploy Nginx configuration: {}", e)
-                    }))));
-                }
+    let name_changed = new_domain_name != existing.domain;
+    if name_changed {
+        let _ = NginxManager::delete_site(&existing.domain);
+    }
+
+    if is_nginx_type {
+        match NginxManager::deploy_site(
+            new_domain_type,
+            new_domain_name,
+            new_target_host,
+            new_root_path,
+            new_max_body_size,
+            new_is_ssl,
+            new_cert_path,
+            new_key_path,
+            new_config_content
+        ) {
+            Ok(_) => {},
+            Err(e) => {
+                tracing::error!("Nginx update deployment failed: {}", e);
+                return Err((StatusCode::BAD_REQUEST, Json(json!({"status": "fail", "message": e}))));
             }
         }
     }
 
-    // 6. Update database
-    let updated = sqlx::query_as::<_, Domain>(
-        "UPDATE domains 
-         SET domain = $1, port = $2, max_body_size = $3, is_ssl = $4, is_active = $5, 
-             ssl_certificate_path = $6, ssl_certificate_key_path = $7, updated_at = NOW()
-         WHERE id = $8 AND user_id = $9
-         RETURNING *"
+    let updated_domain = sqlx::query_as::<_, Domain>(
+        r#"
+        UPDATE domains SET 
+            domain = $1, client_max_body_size = $2, is_ssl = $3, is_active = $4,
+            domain_type = $5, nginx_target_host = $6, nginx_root_path = $7, nginx_config_content = $8,
+            ssl_certificate_path = $9, ssl_certificate_key_path = $10,
+            updated_at = NOW()
+        WHERE id = $11
+        RETURNING *
+        "#
     )
-    .bind(&body.domain)
-    .bind(body.port)
-    .bind(updated_max_body)
-    .bind(updated_ssl)
-    .bind(updated_active)
-    .bind(&updated_ssl_cert)
-    .bind(&updated_ssl_key)
+    .bind(new_domain_name)
+    .bind(new_max_body_size)
+    .bind(new_is_ssl)
+    .bind(true)
+    .bind(new_domain_type)
+    .bind(new_target_host)
+    .bind(new_root_path)
+    .bind(new_config_content)
+    .bind(new_cert_path)
+    .bind(new_key_path)
     .bind(id)
-    .bind(user.id)
     .fetch_one(&data.db).await
-    .map_err(|e| {
-        tracing::error!("Database update failed: {}", e);
-        (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()})))
-    })?;
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?;
 
-    Ok(Json(json!({"status": "success", "data": updated})))
+    Ok(Json(json!({"status": "success", "data": updated_domain})))
 }
 
 pub async fn list_domains(
@@ -242,41 +290,39 @@ pub async fn list_domains(
     let page_size = opts.page_size.unwrap_or(10).max(1);
     let offset = (page - 1) * page_size;
 
-    // Count query
     let mut count_qb = QueryBuilder::new("SELECT COUNT(*) FROM domains WHERE user_id = ");
     count_qb.push_bind(user.id);
-
+    
     if let Some(ref search) = opts.search {
-        if !search.is_empty() {
-            count_qb.push(" AND domain ILIKE ");
-            count_qb.push_bind(format!("%{}%", search));
-        }
+        count_qb.push(" AND domain ILIKE ");
+        count_qb.push_bind(format!("%{}%", search));
+    }
+    if let Some(ref d_type) = opts.domain_type {
+        count_qb.push(" AND domain_type = ");
+        count_qb.push_bind(d_type);
+    }
+    if let Some(active) = opts.is_active {
+        count_qb.push(" AND is_active = ");
+        count_qb.push_bind(active);
     }
 
-    if let Some(port) = opts.port {
-        count_qb.push(" AND port = ");
-        count_qb.push_bind(port);
-    }
-
-    let total_items: i64 = count_qb.build_query_scalar()
-        .fetch_one(&data.db)
-        .await
+    let total_items: i64 = count_qb.build_query_scalar().fetch_one(&data.db).await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?;
 
-    // Data query
     let mut query_qb: QueryBuilder<Postgres> = QueryBuilder::new("SELECT * FROM domains WHERE user_id = ");
     query_qb.push_bind(user.id);
 
     if let Some(ref search) = opts.search {
-        if !search.is_empty() {
-            query_qb.push(" AND domain ILIKE ");
-            query_qb.push_bind(format!("%{}%", search));
-        }
+        query_qb.push(" AND domain ILIKE ");
+        query_qb.push_bind(format!("%{}%", search));
     }
-
-    if let Some(port) = opts.port {
-        query_qb.push(" AND port = ");
-        query_qb.push_bind(port);
+    if let Some(ref d_type) = opts.domain_type {
+        query_qb.push(" AND domain_type = ");
+        query_qb.push_bind(d_type);
+    }
+    if let Some(active) = opts.is_active {
+        query_qb.push(" AND is_active = ");
+        query_qb.push_bind(active);
     }
 
     query_qb.push(" ORDER BY created_at DESC LIMIT ");
@@ -285,38 +331,18 @@ pub async fn list_domains(
     query_qb.push_bind(offset);
 
     let domains: Vec<Domain> = query_qb.build_query_as()
-        .fetch_all(&data.db)
-        .await
+        .fetch_all(&data.db).await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?;
 
     let total_pages = (total_items as f64 / page_size as f64).ceil() as i64;
-    
-    let result = PaginatedDomainList {
-        domains,
-        pagination: PaginationMeta {
-            total_pages,
-            page_size,
-            total_items,
+
+    Ok(Json(json!({
+        "status": "success", 
+        "data": PaginatedDomainList {
+            domains,
+            pagination: PaginationMeta { total_pages, page_size, total_items }
         }
-    };
-
-    Ok(Json(json!({"status": "success", "data": result})))
-}
-
-pub async fn get_domain(
-    State(data): State<Arc<AppState>>,
-    JWTAuth(user): JWTAuth,
-    Path(id): Path<uuid::Uuid>,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-
-    let domain = sqlx::query_as::<_, Domain>("SELECT * FROM domains WHERE id = $1 AND user_id = $2")
-        .bind(id)
-        .bind(user.id)
-        .fetch_optional(&data.db).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?
-        .ok_or((StatusCode::NOT_FOUND, Json(json!({"message": "Domain not found"}))))?;
-
-    Ok(Json(json!({"status": "success", "data": domain})))
+    })))
 }
 
 pub async fn delete_domain(
@@ -332,8 +358,11 @@ pub async fn delete_domain(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?
         .ok_or((StatusCode::NOT_FOUND, Json(json!({"message": "Domain not found"}))))?;
 
-    let _ = NginxManager::delete_site(&domain.domain);
-
+    let is_nginx = matches!(domain.domain_type.as_str(), "reverse_proxy" | "web_server" | "static_host" | "custom");
+    if is_nginx {
+        let _ = NginxManager::delete_site(&domain.domain);
+    }
+    
     sqlx::query("DELETE FROM domains WHERE id = $1")
         .bind(id)
         .execute(&data.db).await

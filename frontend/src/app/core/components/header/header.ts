@@ -24,6 +24,11 @@ export class Header {
     { title: 'Add', route: '/domains/add' },
     { title: '', route: '/domains/:domainId' },
     { title: 'Edit', route: '/domains/:domainId/edit' },
+    { title: 'File Storages', route: '/file-storages' },
+    { title: 'Add', route: '/file-storages/add' },
+    { title: '', route: '/file-storages/:storageId' },
+    { title: 'Files', route: '/file-storages/:storageId/files' },
+    { title: 'Edit', route: '/file-storages/:storageId/edit' },
   ];
 
   path = signal<any[]>([]);

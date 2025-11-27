@@ -22,8 +22,7 @@ export interface UserPayload {
   id?: string;
   _id?: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
+  name?: string;
   isAdmin?: boolean;
   exp?: number;
   [key: string]: any;

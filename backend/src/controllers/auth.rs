@@ -69,7 +69,7 @@ pub async fn login(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?;
     // ------------------------------
 
-    let (access_token, refresh_token) = generate_tokens(user.id, user.role, &data.env.jwt_secret)
+    let (access_token, refresh_token) = generate_tokens(user.id, user.name.clone(), user.email.clone(), user.role, &data.env.jwt_secret)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e}))))?;
 
     let token_res = TokenResponse {
@@ -96,7 +96,7 @@ pub async fn refresh(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e.to_string()}))))?
         .ok_or((StatusCode::UNAUTHORIZED, Json(json!({"message": "User not found"}))))?;
 
-    let (access_token, refresh_token) = generate_tokens(user.id, user.role, &data.env.jwt_secret)
+    let (access_token, refresh_token) = generate_tokens(user.id, user.name.clone(), user.email.clone(), user.role, &data.env.jwt_secret)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e}))))?;
 
     let token_res = TokenResponse {

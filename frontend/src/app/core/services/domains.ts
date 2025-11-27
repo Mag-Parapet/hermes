@@ -9,15 +9,18 @@ export class DomainsService {
   private http = inject(HttpClient);
   private API_URL = environment.API_URL + 'domains';
 
-  getAllDomains(page: number, pageSize: number, search?: string, port?: number) {
+  getAllDomains(page: number, pageSize: number, search?: string, domainType?: string, isActive?: string) {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     params.append('pageSize', pageSize.toString());
     if (search) {
       params.append('search', search);
     }
-    if (port) {
-      params.append('port', port.toString());
+    if (domainType) {
+      params.append('domainType', domainType);
+    }
+    if (isActive) {
+      params.append('isActive', isActive);
     }
     return this.http.get<any[]>(`${this.API_URL}?${params.toString()}`);
   }

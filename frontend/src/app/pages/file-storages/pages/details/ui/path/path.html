@@ -1,0 +1,10 @@
+
+<div class="flex gap-1 items-center mb-3">
+    <div class="material-symbols-outlined cursor-pointer p-1 border border-gray-100 dark:border-gray-700 rounded flex items-center justify-center mr-1" (click)="onPathSegmentClick(currentPath(), -1)">home</div>
+    @for (pathSegment of currentPath(); track $index) {
+        <span class="path-separator">/</span>
+        <div class="path" (click)="onPathSegmentClick(currentPath(), $index)">
+            <span class="path-segment cursor-pointer hover:underline">{{ pathSegment }}</span>
+        </div>
+}
+</div>
