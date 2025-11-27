@@ -71,7 +71,8 @@ impl NginxManager {
             }
 
             // D. Reload Nginx
-            let reload_output = Command::new("systemctl")
+            let reload_output = Command::new("sudo") 
+                .arg("systemctl")
                 .arg("reload")
                 .arg("nginx")
                 .output()
