@@ -57,7 +57,8 @@ impl NginxManager {
                 .map_err(|e| format!("Failed to create symlink: {}", e))?;
 
             // C. Test Configuration (nginx -t)
-            let test_output = Command::new("nginx")
+            let test_output = Command::new("sudo")
+                .arg("nginx")
                 .arg("-t")
                 .output()
                 .map_err(|e| format!("Failed to execute nginx command: {}", e))?;
