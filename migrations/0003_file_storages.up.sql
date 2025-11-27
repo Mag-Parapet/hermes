@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS file_storages (
     is_active BOOLEAN DEFAULT TRUE,
     api_key UUID DEFAULT uuid_generate_v4(),
     allowed_file_types VARCHAR(255) DEFAULT '*',
+    quota_size BIGINT DEFAULT 1073741824,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

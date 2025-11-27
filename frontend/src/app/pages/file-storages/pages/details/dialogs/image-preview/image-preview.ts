@@ -51,24 +51,29 @@ export class ImagePreview implements AfterViewInit {
     container.style.height = this.sizes().height + 2 + 'px';
   }
 
-  renderBlurhash() {
-    if (!this.blurhashCanvas || !this.sampleImage) return;
+   renderBlurhash() {
+    if (!this.blurhashCanvas || !this.file.variants.blurhash) return; // Note: using this.canvasRef from the component structure
 
     const canvas = this.blurhashCanvas.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const blurWidth = 128;
-    const blurHeight = 128;
+
+    const blurWidth = 32;
+    const blurHeight = 32;
+
+    // 1. Set the internal canvas dimensions to the small decoding size
+    canvas.width = blurWidth;
+    canvas.height = blurHeight;
+
+    // 2. Decode pixels directly to that small size
     const pixels = decode(this.file.variants.blurhash, blurWidth, blurHeight);
-
-    const off = document.createElement('canvas');
-    off.width = blurWidth;
-    off.height = blurHeight;
-    const offCtx = off.getContext('2d')!;
-    const imgData = offCtx.createImageData(blurWidth, blurHeight);
-    imgData.data.set(pixels);
-    offCtx.putImageData(imgData, 0, 0);
-
-    ctx.drawImage(off, 0, 0, this.sizes().width, this.sizes().height);
-  }
+    
+    // 3. Put pixels directly onto the context
+    const imageData = ctx.createImageData(blurWidth, blurHeight);
+    imageData.data.set(pixels);
+    ctx.putImageData(imageData, 0, 0);
+    
+    // The browser automatically scales this small 32x32 image to fit the 
+    // full size of the <canvas> element defined by your CSS.
+}
 }

@@ -23,7 +23,7 @@
             <canvas class="absolute inset-0 h-full w-full object-cover rounded-xl" #blurhashCanvas></canvas>
         </div>
         <img 
-            [src]="file.variants[selectedVariantImage()]" 
+            [src]="selectedVariantImage()" 
             alt="Image Preview" 
             #sampleImage
             [class.hidden]="selectedVariant() === 'blurhash'"
